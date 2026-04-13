@@ -1,0 +1,71 @@
+﻿@import "tailwindcss";
+
+@font-face {
+  font-family: "Digital Proper Pixel";
+  src: url("/fonts/DigitalProperPixel-Regular.otf") format("opentype");
+  font-display: swap;
+}
+:root {
+  --bg-main: #060606;
+  --text-main: #f3f3f3;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 330px;
+  height: 470px;
+  margin: 0;
+  overflow: hidden;
+  background: radial-gradient(circle at 20% 0%, #111111, var(--bg-main) 62%);
+  color: var(--text-main);
+  font-family: "Digital Proper Pixel";
+}
+
+#app {
+  width: 330px;
+  height: 470px;
+  overflow: hidden;
+}
+
+body.dev-site {
+  width: 100%;
+  min-height: 100vh;
+  height: auto;
+  padding: 24px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  overflow: auto;
+  background: radial-gradient(circle at 50% 0%, #171717 0%, var(--bg-main) 66%);
+}
+
+body.dev-site #app {
+  width: 330px;
+  height: 470px;
+  border: 1px solid #2f2f2f;
+  border-radius: 16px;
+  box-shadow: 0 22px 42px rgba(0, 0, 0, 0.55);
+  overflow: hidden;
+}
+
+button,input,textarea {
+  font: inherit;
+}
+
+.popup-shell {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0));
+}
+
+.popup-main {
+  flex: 1;
+  padding: 16px;
+  overflow: hidden;
+}

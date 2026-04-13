@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "Pixmori",
+  "description": "Minimal MVP productivity companion with a pixel pet.",
+  "version": "0.1.0",
+  "action": {
+    "default_title": "Pixmori",
+    "default_popup": "popup.html"
+  },
+  "permissions": [
+    "storage"
+  ]
+}
