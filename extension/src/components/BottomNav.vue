@@ -24,7 +24,7 @@
       type="button"
       @click="activateSettings"
     >
-      Настройки
+      Больше
     </button>
   </nav>
 </template>

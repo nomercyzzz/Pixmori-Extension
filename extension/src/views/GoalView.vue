@@ -32,7 +32,7 @@
             @click="selectCustomGoal(goal.id)"
           >
             <span class="goal-item-title">{{ goal.title }}</span>
-            <span class="goal-item-text">{{ goal.description }}</span>
+            <span v-if="goal.description" class="goal-item-text">{{ goal.description }}</span>
           </button>
         </li>
       </ul>
@@ -47,6 +47,7 @@
 
           <input
             v-model="form.title"
+            @input="handleFormInput"
             class="field"
             type="text"
             placeholder="Название"
@@ -54,21 +55,20 @@
 
           <textarea
             v-model="form.description"
+            @input="handleFormInput"
             class="field field-area"
             rows="3"
             placeholder="Описание"
           ></textarea>
 
-          <p class="helper">
-            Опиши цель конкретно, чтобы анализ понимал, какие сайты и действия полезны.
+          <p class="helper" :class="{ 'helper-error': hasValidationError }">
+            {{ helperText }}
           </p>
 
           <div class="alert-actions">
             <button type="submit" class="save-btn">Сохранить</button>
             <button type="button" class="cancel-btn" @click="closeCreateForm">Отмена</button>
           </div>
-
-          <p v-if="errorText" class="error-text">{{ errorText }}</p>
         </form>
       </div>
     </Transition>
@@ -79,17 +79,70 @@
 import { computed, reactive, ref } from 'vue'
 import { useAppStore } from '../stores/appStore'
 
+const DEFAULT_HELPER_TEXT = 'Опиши цель конкретно, чтобы анализ понимал, какие сайты и действия полезны.'
+
 const store = useAppStore()
 const isFormOpen = ref(false)
-const errorText = ref('')
-const activeTab = computed(() => (
-  isFormOpen.value || !store.isDefaultGoalSelected ? 'create' : 'default'
-))
+const isSubmitAttempted = ref(false)
+
+const activeTab = computed(() => {
+  return isFormOpen.value || !store.isDefaultGoalSelected ? 'create' : 'default'
+})
 
 const form = reactive({
   title: '',
   description: ''
 })
+
+function normalizeTitle(value) {
+  return value.trim().replace(/\s+/g, ' ').toLowerCase()
+}
+
+function getHelperMessage() {
+  const title = form.title.trim()
+  const description = form.description.trim()
+
+  if (isSubmitAttempted.value && !title) {
+    return 'Заполни название цели'
+  }
+
+  if (form.title && title.length < 3) {
+    return `В названии нужно еще ${3 - title.length} симв.`
+  }
+
+  if (form.description && description.length < 8) {
+    return `В описании нужно еще ${8 - description.length} симв.`
+  }
+
+  if (isSubmitAttempted.value && !description) {
+    return 'Заполни описание цели'
+  }
+
+  if (title.length >= 3) {
+    const normalizedTitle = normalizeTitle(title)
+    const hasDuplicate = store.goals.some((goal) => normalizeTitle(goal.title) === normalizedTitle)
+
+    if (hasDuplicate) {
+      return 'Такая цель уже есть'
+    }
+  }
+
+  return DEFAULT_HELPER_TEXT
+}
+
+const helperText = computed(() => {
+  return getHelperMessage()
+})
+
+const hasValidationError = computed(() => {
+  return isFormOpen.value && helperText.value !== DEFAULT_HELPER_TEXT
+})
+
+function handleFormInput() {
+  if (!form.title && !form.description) {
+    isSubmitAttempted.value = false
+  }
+}
 
 async function selectDefault() {
   await store.setDefaultGoal()
@@ -98,7 +151,9 @@ async function selectDefault() {
 
 function openCreateForm() {
   isFormOpen.value = true
-  errorText.value = ''
+  form.title = ''
+  form.description = ''
+  isSubmitAttempted.value = false
 }
 
 async function selectCustomGoal(goalId) {
@@ -107,17 +162,23 @@ async function selectCustomGoal(goalId) {
 
 function closeCreateForm() {
   isFormOpen.value = false
-  errorText.value = ''
+  form.title = ''
+  form.description = ''
+  isSubmitAttempted.value = false
 }
 
 async function submitGoal() {
-  const saved = await store.saveCustomGoal(form)
+  isSubmitAttempted.value = true
 
-  if (!saved) {
-    errorText.value = 'Заполни название и описание.'
+  if (helperText.value !== DEFAULT_HELPER_TEXT) {
     return
   }
 
+  const saved = await store.saveCustomGoal(form)
+
+  if (!saved) return
+
+  isSubmitAttempted.value = false
   form.title = ''
   form.description = ''
   closeCreateForm()
@@ -162,7 +223,7 @@ async function submitGoal() {
 }
 
 .action-btn-active:hover {
-  transform: scale(1.02);
+  opacity: 0.9;
   background: #ffffff;
   color: #090909;
 }
@@ -318,7 +379,7 @@ async function submitGoal() {
   min-height: 36px;
   padding: 10px 11px 8px;
   font-size: 9px;
-  line-height: 1.35;
+  line-height: 2;
   transition: border-color 0.4s ease-in-out;
 }
 
@@ -363,6 +424,9 @@ async function submitGoal() {
   font-size: 9px;
   line-height: 1.35;
 }
+.helper-error {
+  color: #ff6b6b;
+}
 
 .alert-actions {
   display: flex;
@@ -386,11 +450,13 @@ async function submitGoal() {
   color: #0b0b0b;
 }
 
-.error-text {
-  margin: 0;
-  font-size: 9px;
-  line-height: 1.3;
-  color: #dfdfdf;
+.save-btn:hover {
+  opacity: 0.9;
+}
+
+.cancel-btn:hover {
+  border-color: #f6f6f6;
+  background: #181818;
 }
 
 .alert-fade-enter-active,

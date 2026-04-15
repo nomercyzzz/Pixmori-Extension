@@ -132,7 +132,7 @@ async function togglePet() {
   color: #090909;
 }
 .toggle-btn-start:hover {
-  transform: scale(1.02);
+  opacity: 0.9;
 }
 .toggle-btn-stop {
   color: #f6f6f6;

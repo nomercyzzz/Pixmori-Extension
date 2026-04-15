@@ -1,6 +1,10 @@
 import { defineStore } from 'pinia'
 import { loadGoalsState, loadPetState, saveGoalsState, savePetState } from '../lib/storage.js'
 
+function normalizeTitle(value) {
+  return value.trim().replace(/\s+/g, ' ').toLowerCase()
+}
+
 export const useAppStore = defineStore('app', {
   state: () => ({
     petMood: 'sleeping',
@@ -59,7 +63,15 @@ export const useAppStore = defineStore('app', {
       const title = payload.title.trim()
       const description = payload.description.trim()
 
-      if (!title || !description) {
+      if (!title || title.length < 3) {
+        return false
+      }
+
+      if (!description || description.length < 8) {
+        return false
+      }
+
+      if (this.goals.some((goal) => normalizeTitle(goal.title) === normalizeTitle(title))) {
         return false
       }
 
