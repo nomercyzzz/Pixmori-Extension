@@ -1,6 +1,6 @@
-﻿<template>
+<template>
   <section class="home-page">
-    <header class="top-row">
+    <header class="top-row page-block page-block-1">
       <p class="brand">Pixmore</p>
       <div class="coins-box">
         <span class="coins-label">Мори</span>
@@ -8,11 +8,11 @@
       </div>
     </header>
 
-    <div class="pet-zone">
+    <div class="pet-zone page-block page-block-2">
       <PetDisplay :mood="store.petMood" />
     </div>
 
-    <div class="action-zone">
+    <div class="action-zone page-block page-block-3">
       <button class="toggle-btn" :class="buttonModeClass" type="button" @click="togglePet">
         <span class="toggle-btn-text">{{ toggleButtonText }}</span>
       </button>
@@ -58,6 +58,24 @@ async function togglePet() {
   gap: 4px;
 }
 
+.page-block {
+  opacity: 0;
+  transform: translateY(14px);
+  animation: block-drop 0.42s ease-out forwards;
+}
+
+.page-block-1 {
+  animation-delay: 0.04s;
+}
+
+.page-block-2 {
+  animation-delay: 0.12s;
+}
+
+.page-block-3 {
+  animation-delay: 0.2s;
+}
+
 .top-row {
   display: flex;
   justify-content: space-between;
@@ -100,12 +118,12 @@ async function togglePet() {
 }
 
 .action-zone {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    width: 100%;
-    gap: 14px;
-    margin-top: 36px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  gap: 14px;
+  margin-top: 36px;
 }
 
 .toggle-btn {
@@ -114,7 +132,7 @@ async function togglePet() {
   justify-content: center;
   min-height: 40px;
   min-width: 160px;
-  padding: 8px 8px 0px 18px;
+  padding: 8px 8px 0 18px;
   margin-top: 0;
   border-radius: 11px;
   font-size: 12px;
@@ -122,6 +140,7 @@ async function togglePet() {
   border: 1px solid #3a3a3a;
   transition: all 0.4s ease-in-out;
 }
+
 .toggle-btn-text {
   display: block;
   transform: translateY(-1px);
@@ -131,9 +150,11 @@ async function togglePet() {
   background: #ffffff;
   color: #090909;
 }
+
 .toggle-btn-start:hover {
   opacity: 0.9;
 }
+
 .toggle-btn-stop {
   color: #f6f6f6;
 }
@@ -144,35 +165,47 @@ async function togglePet() {
 }
 
 .goal-mini {
-    width: fit-content;
-    min-width: 200px;
-    margin-top: 0;
-    border: 1px solid #2b2b2b;
-    border-radius: 11px;
-    background: #101010;
-    padding: 8px 12px;
-    text-align: center;
-    overflow: hidden;
+  width: fit-content;
+  min-width: 200px;
+  margin-top: 0;
+  border: 1px solid #2b2b2b;
+  border-radius: 11px;
+  background: #101010;
+  padding: 8px 12px;
+  text-align: center;
+  overflow: hidden;
 }
 
 .goal-mini-label {
   margin-bottom: 4px;
-    color: #a6a6a6;
-    font-size: 8px;
+  color: #a6a6a6;
+  font-size: 8px;
 }
 
 .goal-mini-title {
-color: #fafafa;
-    font-size: 10px;
-    font-weight: 600;
-    line-height: 2;
-    padding: 1px 0 0;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    max-height: 3.5em;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    overflow-wrap: anywhere;
+  color: #fafafa;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 2;
+  padding: 1px 0 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  max-height: 3.5em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  overflow-wrap: anywhere;
+}
+
+@keyframes block-drop {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 </style>

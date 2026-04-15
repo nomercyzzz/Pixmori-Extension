@@ -25,10 +25,5 @@ export default defineConfig({
         popup: resolve(__dirname, 'popup.html')
       }
     }
-  },
-  server: {
-    fs: {
-      allow: [resolve(__dirname, '..')]
-    }
   }
 })

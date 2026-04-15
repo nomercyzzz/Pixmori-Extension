@@ -1,8 +1,10 @@
-﻿<template>
-  <nav class="bottom-nav" aria-label="Навигация">
+<template>
+  <nav class="bottom-nav" :style="{ '--nav-index': activeIndex }" aria-label="Навигация">
+    <span class="nav-indicator" aria-hidden="true"></span>
+
     <button
       class="nav-btn"
-      :class="{ 'nav-btn-active': !settingsSelected && route.path === '/' }"
+      :class="{ 'nav-btn-active': activeIndex === 0 }"
       type="button"
       @click="goTo('/')"
     >
@@ -11,7 +13,7 @@
 
     <button
       class="nav-btn"
-      :class="{ 'nav-btn-active': !settingsSelected && route.path === '/goal' }"
+      :class="{ 'nav-btn-active': activeIndex === 1 }"
       type="button"
       @click="goTo('/goal')"
     >
@@ -20,40 +22,46 @@
 
     <button
       class="nav-btn"
-      :class="{ 'nav-btn-active': settingsSelected }"
+      :class="{ 'nav-btn-active': activeIndex === 2 }"
       type="button"
-      @click="activateSettings"
+      @click="goTo('/more')"
     >
-      Больше
+      Еще
     </button>
   </nav>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 const route = useRoute()
 const router = useRouter()
-const settingsSelected = ref(false)
+
+const activeIndex = computed(() => {
+  if (route.path === '/goal') {
+    return 1
+  }
+
+  if (route.path.startsWith('/more')) {
+    return 2
+  }
+
+  return 0
+})
 
 function goTo(path) {
-  settingsSelected.value = false
-
   if (route.path === path) {
     return
   }
 
   router.push(path)
 }
-
-function activateSettings() {
-  settingsSelected.value = true
-}
 </script>
 
 <style scoped>
 .bottom-nav {
+  position: relative;
   margin: 0 6px 6px;
   border: 1px solid #2a2a2a;
   border-radius: 11px;
@@ -61,9 +69,24 @@ function activateSettings() {
   padding: 4px;
   display: flex;
   gap: 4px;
+  overflow: hidden;
+}
+
+.nav-indicator {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  left: 4px;
+  width: calc((100% - 16px) / 3);
+  border-radius: 8px;
+  background: #ffffff;
+  transition: transform 0.34s ease-in-out;
+  transform: translateX(calc(var(--nav-index) * (100% + 4px)));
 }
 
 .nav-btn {
+  position: relative;
+  z-index: 1;
   flex: 1;
   border: 1px solid transparent;
   border-radius: 8px;
@@ -71,12 +94,10 @@ function activateSettings() {
   color: #a9a9a9;
   font-size: 10px;
   min-height: 36px;
-  transition: all 0.4s ease-in-out;
+  transition: color 0.34s ease-in-out, opacity 0.34s ease-in-out;
 }
 
 .nav-btn-active {
-  background: #ffffff;
-  border-color: #ffffff;
   color: #090909;
 }
 </style>

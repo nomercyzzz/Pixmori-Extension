@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="popup-shell">
     <main class="popup-main">
       <RouterView />

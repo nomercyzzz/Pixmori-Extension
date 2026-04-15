@@ -1,6 +1,6 @@
 ﻿<template>
   <section class="goal-page">
-    <div class="goal-actions">
+    <div class="goal-actions page-block page-block-1">
       <button
         class="action-btn"
         :class="{ 'action-btn-active': activeTab === 'default' }"
@@ -20,8 +20,8 @@
       </button>
     </div>
 
-    <section class="goal-list-card">
-      <p class="list-title">Список целей</p>
+    <section class="goal-list-card page-block page-block-2">
+      <p class="list-title">Мои цели</p>
 
       <ul v-if="store.goals.length > 0" class="goal-list">
         <li v-for="goal in store.goals" :key="goal.id">
@@ -195,27 +195,42 @@ async function submitGoal() {
   min-height: 0;
 }
 
+.page-block {
+  opacity: 0;
+  transform: translateY(14px);
+  animation: block-drop 0.42s ease-out forwards;
+}
+
+.page-block-1 {
+  animation-delay: 0.04s;
+}
+
+.page-block-2 {
+  animation-delay: 0.12s;
+}
+
 .goal-actions {
   display: flex;
   gap: 10px;
 }
 
 .action-btn {
-  flex:1;
+  flex: 1;
   padding: 8px 8px 4px 8px;
-    min-height: 36px;
-    border-radius: 8px;
-    border: 1px solid #3a3a3a;
-    background: #111111;
-    color: #f2f2f2;
-    font-size: 9px;
-    transition: all 0.4s ease-in-out;
+  min-height: 36px;
+  border-radius: 8px;
+  border: 1px solid #3a3a3a;
+  background: #111111;
+  color: #f2f2f2;
+  font-size: 9px;
+  transition: all 0.4s ease-in-out;
 }
 
 .action-btn-active {
   background: #ffffff;
   color: #090909;
 }
+
 .action-btn:not(.action-btn-active):hover {
   border-color: #f6f6f6;
   background: #181818;
@@ -244,7 +259,7 @@ async function submitGoal() {
 .list-title {
   color: #a9a9a9;
   font-size: 8px;
-  text-transform: uppercase;
+  font-weight: bold;
 }
 
 .goal-list {
@@ -424,6 +439,7 @@ async function submitGoal() {
   font-size: 9px;
   line-height: 1.35;
 }
+
 .helper-error {
   color: #ff6b6b;
 }
@@ -433,7 +449,8 @@ async function submitGoal() {
   gap: 6px;
 }
 
-.save-btn, .cancel-btn {
+.save-btn,
+.cancel-btn {
   flex: 1;
   min-height: 32px;
   border-radius: 8px;
@@ -467,5 +484,17 @@ async function submitGoal() {
 .alert-fade-enter-from,
 .alert-fade-leave-to {
   opacity: 0;
+}
+
+@keyframes block-drop {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 </style>

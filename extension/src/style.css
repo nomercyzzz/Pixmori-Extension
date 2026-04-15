@@ -31,27 +31,6 @@ body {
   overflow: hidden;
 }
 
-body.dev-site {
-  width: 100%;
-  min-height: 100vh;
-  height: auto;
-  padding: 24px;
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  overflow: auto;
-  background: radial-gradient(circle at 50% 0%, #171717 0%, var(--bg-main) 66%);
-}
-
-body.dev-site #app {
-  width: 330px;
-  height: 470px;
-  border: 1px solid #2f2f2f;
-  border-radius: 16px;
-  box-shadow: 0 22px 42px rgba(0, 0, 0, 0.55);
-  overflow: hidden;
-}
-
 button,input,textarea {
   font: inherit;
 }
