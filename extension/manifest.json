@@ -3,11 +3,17 @@
   "name": "Pixmori",
   "description": "Minimal MVP productivity companion with a pixel pet.",
   "version": "0.1.0",
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
   "action": {
-    "default_title": "Pixmori",
-    "default_popup": "popup.html"
+    "default_title": "Pixmori"
+  },
+  "background": {
+    "service_worker": "service-worker.js"
   },
   "permissions": [
-    "storage"
+    "storage",
+    "sidePanel"
   ]
 }

@@ -22,7 +22,7 @@ export default defineConfig({
     emptyOutDir: true,
     rollupOptions: {
       input: {
-        popup: resolve(__dirname, 'popup.html')
+        sidepanel: resolve(__dirname, 'sidepanel.html')
       }
     }
   }

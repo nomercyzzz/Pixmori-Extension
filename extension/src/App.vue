@@ -1,6 +1,6 @@
 <template>
-  <div class="popup-shell">
-    <main class="popup-main">
+  <div class="panel-shell">
+    <main class="panel-main">
       <RouterView />
     </main>
     <BottomNav />

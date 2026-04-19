@@ -6,6 +6,7 @@ import Pet from '../views/Pet.vue'
 import Shop from '../views/Shop.vue'
 import Account from '../views/Account.vue'
 import About from '../views/About.vue'
+import Help from '../views/Help.vue'
 
 const router = createRouter({
   history: createWebHashHistory(),
@@ -16,7 +17,8 @@ const router = createRouter({
     { path: '/more/pet', name: 'pet', component: Pet },
     { path: '/more/shop', name: 'shop', component: Shop },
     { path: '/more/account', name: 'account', component: Account },
-    { path: '/more/about', name: 'about', component: About }
+    { path: '/more/about', name: 'about', component: About },
+    { path: '/more/help', name: 'help', component: Help }
   ]
 })
 

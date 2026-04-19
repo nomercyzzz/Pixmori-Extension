@@ -1,9 +1,6 @@
 import { defineStore } from 'pinia'
-import { loadGoalsState, loadPetState, saveGoalsState, savePetState } from '../lib/storage.js'
-
-function normalizeTitle(value) {
-  return value.trim().replace(/\s+/g, ' ').toLowerCase()
-}
+import { loadGoalsState, loadPetState, saveGoalsState, savePetState } from '../utils/storage.js'
+import { normalizeTitle } from '../utils/goalUtils.js'
 
 export const useAppStore = defineStore('app', {
   state: () => ({
@@ -15,12 +12,14 @@ export const useAppStore = defineStore('app', {
   getters: {
     selectedGoal(state) {
       return state.goals.find((goal) => goal.id === state.selectedGoalId) ?? {
-        id: 'default-goal',
-        title: 'По умолчанию'
+        id: 'free-goal',
+        title: 'Свободный режим',
+        description: '',
+        blacklistSites: []
       }
     },
 
-    isDefaultGoalSelected(state) {
+    isFreeGoalSelected(state) {
       return state.selectedGoalId === null
     }
   },
@@ -44,7 +43,7 @@ export const useAppStore = defineStore('app', {
       await this.savePet()
     },
 
-    async setDefaultGoal() {
+    async setFreeGoal() {
       this.selectedGoalId = null
       await this.saveGoals()
     },
@@ -59,9 +58,13 @@ export const useAppStore = defineStore('app', {
       return true
     },
 
-    async saveCustomGoal(payload) {
+    async saveGoal(payload) {
       const title = payload.title.trim()
       const description = payload.description.trim()
+      const goalId = payload.id ?? null
+      const blacklistSites = Array.isArray(payload.blacklistSites)
+        ? payload.blacklistSites.map((site) => site.trim()).filter(Boolean)
+        : []
 
       if (!title || title.length < 3) {
         return false
@@ -71,14 +74,30 @@ export const useAppStore = defineStore('app', {
         return false
       }
 
-      if (this.goals.some((goal) => normalizeTitle(goal.title) === normalizeTitle(title))) {
+      if (this.goals.some((goal) => goal.id !== goalId && normalizeTitle(goal.title) === normalizeTitle(title))) {
         return false
+      }
+
+      if (goalId) {
+        const goal = this.goals.find((item) => item.id === goalId)
+
+        if (!goal) {
+          return false
+        }
+
+        goal.title = title
+        goal.description = description
+        goal.blacklistSites = blacklistSites
+        this.selectedGoalId = goal.id
+        await this.saveGoals()
+        return true
       }
 
       const newGoal = {
         id: `goal-${Date.now()}`,
         title,
-        description
+        description,
+        blacklistSites
       }
 
       this.goals.unshift(newGoal)

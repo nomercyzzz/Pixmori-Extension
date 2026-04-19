@@ -31,6 +31,14 @@
       </span>
       <span class="more-arrow" aria-hidden="true">></span>
     </button>
+
+    <button class="more-card page-block page-block-5" type="button" @click="goTo('help')">
+      <span class="more-copy">
+        <span class="more-title">Помощь</span>
+        <span class="more-text">Подсказки и ответы</span>
+      </span>
+      <span class="more-arrow" aria-hidden="true">></span>
+    </button>
   </section>
 </template>
 
@@ -75,6 +83,10 @@ function goTo(section) {
   animation-delay: 0.28s;
 }
 
+.page-block-5 {
+  animation-delay: 0.36s;
+}
+
 .more-card {
   width: 100%;
   display: flex;
@@ -90,8 +102,17 @@ function goTo(section) {
 }
 
 .more-card:hover {
-  border-color: #5f5f5f;
-  background: #181818;
+  border-color: #ffffff;
+  background: #ffffff;
+}
+
+.more-card:hover .more-title {
+  color: #090909;
+}
+
+.more-card:hover .more-text,
+.more-card:hover .more-arrow {
+  color: #6a6a6a;
 }
 
 .more-copy {
@@ -104,12 +125,14 @@ function goTo(section) {
   color: #fafafa;
   font-size: 10px;
   line-height: 1.3;
+  transition: color 0.4s ease-in-out;
 }
 
 .more-text {
   color: #8f8f8f;
   font-size: 8px;
   line-height: 1.3;
+  transition: color 0.4s ease-in-out;
 }
 
 .more-arrow {
@@ -117,6 +140,7 @@ function goTo(section) {
   color: #8f8f8f;
   font-size: 10px;
   line-height: 1;
+  transition: color 0.4s ease-in-out;
 }
 
 @keyframes block-drop {

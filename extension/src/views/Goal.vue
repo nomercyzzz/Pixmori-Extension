@@ -3,11 +3,11 @@
     <div class="goal-actions page-block page-block-1">
       <button
         class="action-btn"
-        :class="{ 'action-btn-active': activeTab === 'default' }"
+        :class="{ 'action-btn-active': activeTab === 'free' }"
         type="button"
-        @click="selectDefault"
+        @click="selectFreeGoal"
       >
-        По умолчанию
+        Свободный режим
       </button>
 
       <button
@@ -25,77 +25,71 @@
 
       <ul v-if="store.goals.length > 0" class="goal-list">
         <li v-for="goal in store.goals" :key="goal.id">
-          <button
-            type="button"
-            class="goal-item"
-            :class="{ 'goal-item-active': store.selectedGoalId === goal.id }"
-            @click="selectCustomGoal(goal.id)"
-          >
-            <span class="goal-item-title">{{ goal.title }}</span>
-            <span v-if="goal.description" class="goal-item-text">{{ goal.description }}</span>
-          </button>
+          <div class="goal-item-box" :class="{ 'goal-item-box-active': store.selectedGoalId === goal.id }">
+            <button
+              type="button"
+              class="goal-item"
+              @click="selectCustomGoal(goal.id)"
+            >
+              <span class="goal-item-title">{{ goal.title }}</span>
+              <span v-if="goal.description" class="goal-item-text">{{ goal.description }}</span>
+            </button>
+
+            <button type="button" class="goal-edit-btn" @click="openEditForm(goal)">
+              Изменить
+            </button>
+          </div>
         </li>
       </ul>
 
       <p v-else class="empty-text">целей пока что нет :(</p>
     </section>
 
-    <Transition name="alert-fade">
-      <div v-if="isFormOpen" class="alert-overlay" @click.self="closeCreateForm">
-        <form class="alert-card" @submit.prevent="submitGoal">
-          <h2>Новая цель</h2>
-
-          <input
-            v-model="form.title"
-            @input="handleFormInput"
-            class="field"
-            type="text"
-            placeholder="Название"
-          />
-
-          <textarea
-            v-model="form.description"
-            @input="handleFormInput"
-            class="field field-area"
-            rows="3"
-            placeholder="Описание"
-          ></textarea>
-
-          <p class="helper" :class="{ 'helper-error': hasValidationError }">
-            {{ helperText }}
-          </p>
-
-          <div class="alert-actions">
-            <button type="submit" class="save-btn">Сохранить</button>
-            <button type="button" class="cancel-btn" @click="closeCreateForm">Отмена</button>
-          </div>
-        </form>
-      </div>
-    </Transition>
+    <GoalFormModal
+      :is-open="isFormOpen"
+      :title="formTitle"
+      :form="form"
+      :helper-text="helperText"
+      :has-validation-error="hasValidationError"
+      :is-blacklist-open="isBlacklistOpen"
+      @close="closeGoalForm"
+      @submit="submitGoal"
+      @input="handleFormInput"
+      @toggle-blacklist="toggleBlacklist"
+    />
   </section>
 </template>
 
 <script setup>
 import { computed, reactive, ref } from 'vue'
+import GoalFormModal from '../components/GoalFormModal.vue'
 import { useAppStore } from '../stores/appStore'
+import { normalizeTitle } from '../utils/goalUtils.js'
 
 const DEFAULT_HELPER_TEXT = 'Опиши цель конкретно, чтобы анализ понимал, какие сайты и действия полезны.'
 
 const store = useAppStore()
 const isFormOpen = ref(false)
 const isSubmitAttempted = ref(false)
+const isBlacklistOpen = ref(false)
 
 const activeTab = computed(() => {
-  return isFormOpen.value || !store.isDefaultGoalSelected ? 'create' : 'default'
+  return isFormOpen.value || !store.isFreeGoalSelected ? 'create' : 'free'
 })
 
 const form = reactive({
+  id: null,
   title: '',
-  description: ''
+  description: '',
+  blacklistSitesText: ''
 })
 
-function normalizeTitle(value) {
-  return value.trim().replace(/\s+/g, ' ').toLowerCase()
+const formTitle = computed(() => {
+  return form.id ? 'Редактировать цель' : 'Новая цель'
+})
+
+function parseBlacklistSites(value) {
+  return value.split('\n').map((site) => site.trim()).filter(Boolean)
 }
 
 function getHelperMessage() {
@@ -120,7 +114,7 @@ function getHelperMessage() {
 
   if (title.length >= 3) {
     const normalizedTitle = normalizeTitle(title)
-    const hasDuplicate = store.goals.some((goal) => normalizeTitle(goal.title) === normalizedTitle)
+    const hasDuplicate = store.goals.some((goal) => goal.id !== form.id && normalizeTitle(goal.title) === normalizedTitle)
 
     if (hasDuplicate) {
       return 'Такая цель уже есть'
@@ -139,32 +133,51 @@ const hasValidationError = computed(() => {
 })
 
 function handleFormInput() {
-  if (!form.title && !form.description) {
+  if (!form.title && !form.description && !form.blacklistSitesText) {
     isSubmitAttempted.value = false
   }
 }
 
-async function selectDefault() {
-  await store.setDefaultGoal()
-  closeCreateForm()
+function resetForm() {
+  form.id = null
+  form.title = ''
+  form.description = ''
+  form.blacklistSitesText = ''
+  isSubmitAttempted.value = false
+  isBlacklistOpen.value = false
+}
+
+async function selectFreeGoal() {
+  await store.setFreeGoal()
+  closeGoalForm()
 }
 
 function openCreateForm() {
   isFormOpen.value = true
-  form.title = ''
-  form.description = ''
+  resetForm()
+}
+
+function openEditForm(goal) {
+  isFormOpen.value = true
+  form.id = goal.id
+  form.title = goal.title
+  form.description = goal.description
+  form.blacklistSitesText = Array.isArray(goal.blacklistSites) ? goal.blacklistSites.join('\n') : ''
   isSubmitAttempted.value = false
+  isBlacklistOpen.value = false
 }
 
 async function selectCustomGoal(goalId) {
   await store.selectGoal(goalId)
 }
 
-function closeCreateForm() {
+function closeGoalForm() {
   isFormOpen.value = false
-  form.title = ''
-  form.description = ''
-  isSubmitAttempted.value = false
+  resetForm()
+}
+
+function toggleBlacklist() {
+  isBlacklistOpen.value = !isBlacklistOpen.value
 }
 
 async function submitGoal() {
@@ -174,14 +187,16 @@ async function submitGoal() {
     return
   }
 
-  const saved = await store.saveCustomGoal(form)
+  const saved = await store.saveGoal({
+    id: form.id,
+    title: form.title,
+    description: form.description,
+    blacklistSites: parseBlacklistSites(form.blacklistSitesText)
+  })
 
   if (!saved) return
 
-  isSubmitAttempted.value = false
-  form.title = ''
-  form.description = ''
-  closeCreateForm()
+  closeGoalForm()
 }
 </script>
 
@@ -297,27 +312,70 @@ async function submitGoal() {
 }
 
 .goal-item {
+  flex: 1;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.goal-item-box {
   width: 100%;
   border: 1px solid #3a3a3a;
   border-radius: 8px;
   background: #181818;
   color: #efefef;
   padding: 10px;
-  text-align: left;
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  align-items: flex-start;
+  gap: 10px;
   transition: all 0.4s ease-in-out;
 }
 
-.goal-item:hover {
+.goal-item-box:hover {
   border-color: #5f5f5f;
 }
 
-.goal-item-active {
+.goal-item-box-active {
   border-color: #ffffff;
   background: #ffffff;
   color: #090909;
+}
+
+.goal-item-box-active:hover {
+  border-color: #ffffff;
+  background: #ffffff;
+  color: #090909;
+}
+
+.goal-edit-btn {
+  flex-shrink: 0;
+  min-width: 76px;
+  min-height: 28px;
+  padding: 8px 10px 6px;
+  border-radius: 7px;
+  border: 1px solid #d9d9d9;
+  background: #ffffff;
+  color: #3f3f3f;
+  font-size: 8px;
+  transition: transform 0.4s ease-in-out;
+}
+
+.goal-edit-btn:hover {
+  transform: scale(1.01);
+}
+
+.goal-item-box-active .goal-edit-btn {
+  border-color: #3a3a3a;
+  background: #111111;
+  color: #f2f2f2;
+}
+
+.goal-item-box-active .goal-edit-btn:hover {
+  transform: scale(1.01);
 }
 
 .goal-item-title {
@@ -347,143 +405,13 @@ async function submitGoal() {
   word-break: break-word;
 }
 
-.goal-item-active .goal-item-text {
+.goal-item-box-active .goal-item-text {
   color: #6a6a6a;
 }
 
 .empty-text {
   color: #9a9a9a;
   font-size: 9px;
-}
-
-.alert-overlay {
-  position: absolute;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.72);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 4px;
-}
-
-.alert-card {
-  width: 100%;
-  min-height: 318px;
-  max-height: calc(100% - 8px);
-  border: 1px solid #3d3d3d;
-  border-radius: 12px;
-  background: #151515;
-  padding: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  overflow: hidden;
-}
-
-.alert-card h2 {
-  margin: 0;
-  font-size: 11px;
-}
-
-.field {
-  width: 100%;
-  border: 1px solid #333333;
-  border-radius: 9px;
-  background: #0f0f0f;
-  color: #f0f0f0;
-  min-height: 36px;
-  padding: 10px 11px 8px;
-  font-size: 9px;
-  line-height: 2;
-  transition: border-color 0.4s ease-in-out;
-}
-
-.field:focus {
-  outline: none;
-  border-color: #6a6a6a;
-}
-
-.field-area {
-  line-height: 2;
-  min-height: 122px;
-  max-height: 182px;
-  resize: none;
-  overflow-y: auto;
-  overflow-x: hidden;
-  scrollbar-width: thin;
-  scrollbar-color: #666666 #171717;
-}
-
-.field-area::-webkit-scrollbar {
-  width: 8px;
-}
-
-.field-area::-webkit-scrollbar-track {
-  background: #171717;
-  border-radius: 999px;
-}
-
-.field-area::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, #5c5c5c, #3f3f3f);
-  border-radius: 999px;
-  border: 1px solid #1f1f1f;
-}
-
-.field-area::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, #737373, #525252);
-}
-
-.helper {
-  margin: 0;
-  color: #a3a3a3;
-  font-size: 9px;
-  line-height: 1.35;
-}
-
-.helper-error {
-  color: #ff6b6b;
-}
-
-.alert-actions {
-  display: flex;
-  gap: 6px;
-}
-
-.save-btn,
-.cancel-btn {
-  flex: 1;
-  min-height: 32px;
-  border-radius: 8px;
-  border: 1px solid #4c4c4c;
-  background: #1a1a1a;
-  color: #f3f3f3;
-  font-size: 9px;
-  transition: all 0.4s ease-in-out;
-}
-
-.save-btn {
-  border-color: #ffffff;
-  background: #ffffff;
-  color: #0b0b0b;
-}
-
-.save-btn:hover {
-  opacity: 0.9;
-}
-
-.cancel-btn:hover {
-  border-color: #f6f6f6;
-  background: #181818;
-}
-
-.alert-fade-enter-active,
-.alert-fade-leave-active {
-  transition: opacity 0.4s ease-in-out;
-}
-
-.alert-fade-enter-from,
-.alert-fade-leave-to {
-  opacity: 0;
 }
 
 @keyframes block-drop {
