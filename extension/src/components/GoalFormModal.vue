@@ -1,12 +1,12 @@
 <template>
   <Transition name="alert-fade">
-    <div v-if="isOpen" class="alert-overlay" @click.self="$emit('close')">
-      <form class="alert-card" @submit.prevent="$emit('submit')">
+    <div v-if="isOpen" class="alert-overlay" @click.self="emit('close')">
+      <form class="alert-card" @submit.prevent="emit('submit')">
         <h2>{{ title }}</h2>
 
         <input
           v-model="form.title"
-          @input="$emit('input')"
+          @input="emit('input')"
           class="field"
           type="text"
           placeholder="Название"
@@ -14,7 +14,7 @@
 
         <textarea
           v-model="form.description"
-          @input="$emit('input')"
+          @input="emit('input')"
           class="field field-area"
           rows="3"
           placeholder="Описание"
@@ -25,26 +25,61 @@
         </p>
 
         <div class="extra-block">
-          <button type="button" class="extra-toggle" @click="$emit('toggle-blacklist')">
-            <span>Чёрный список сайтов</span>
-            <span class="extra-toggle-mark">{{ isBlacklistOpen ? '−' : '+' }}</span>
-          </button>
+          <div class="blacklist-head">
+            <p class="blacklist-title">Чёрный список сайтов</p>
+            <span class="blacklist-count">{{ filteredBlacklistSites.length }} / {{ form.blacklistSites.length }}</span>
+          </div>
 
-          <Transition name="blacklist-fade">
-            <textarea
-              v-if="isBlacklistOpen"
-              v-model="form.blacklistSitesText"
-              @input="$emit('input')"
-              class="field field-area field-area-small"
-              rows="4"
-              placeholder="youtube.com&#10;vk.com"
-            ></textarea>
-          </Transition>
+          <div class="blacklist-input-row">
+            <input
+              v-model="form.blacklistSiteDraft"
+              @input="emit('input')"
+              @keydown.enter.prevent="addBlacklistSite"
+              class="field field-site"
+              type="text"
+              placeholder="Добавить сайт"
+            />
+
+            <button type="button" class="site-add-btn" @click="addBlacklistSite">
+              Добавить
+            </button>
+          </div>
+
+          <input
+            v-model="form.blacklistSearch"
+            @input="emit('input')"
+            class="field field-search"
+            type="text"
+            placeholder="Поиск по чёрному списку"
+          />
+
+          <div class="blacklist-panel">
+            <div v-if="filteredBlacklistSites.length > 0" class="blacklist-picked">
+              <button
+                v-for="site in filteredBlacklistSites"
+                :key="site"
+                type="button"
+                class="site-chip site-chip-active"
+                @click="removeBlacklistSite(site)"
+              >
+                <span>{{ site }}</span>
+                <span class="site-chip-mark" aria-hidden="true">+</span>
+              </button>
+            </div>
+
+            <p v-else class="blacklist-empty">
+              {{
+                form.blacklistSites.length > 0
+                  ? 'Ничего не найдено'
+                  : 'Сайты можно добавлять по желанию, а сам чёрный список будет автоматически пополняться от выбранной цели.'
+              }}
+            </p>
+          </div>
         </div>
 
         <div class="alert-actions">
           <button type="submit" class="save-btn">Сохранить</button>
-          <button type="button" class="cancel-btn" @click="$emit('close')">Отмена</button>
+          <button type="button" class="cancel-btn" @click="emit('close')">Отмена</button>
         </div>
       </form>
     </div>
@@ -52,23 +87,67 @@
 </template>
 
 <script setup>
-defineProps({
+import { computed } from 'vue'
+
+const props = defineProps({
   isOpen: Boolean,
   title: String,
   form: Object,
   helperText: String,
-  hasValidationError: Boolean,
-  isBlacklistOpen: Boolean
+  hasValidationError: Boolean
 })
 
-defineEmits(['close', 'submit', 'input', 'toggle-blacklist'])
+const emit = defineEmits(['close', 'submit', 'input'])
+
+function normalizeSite(value) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/^https?:\/\//, '')
+    .replace(/^www\./, '')
+    .replace(/\/.*$/, '')
+}
+
+const filteredBlacklistSites = computed(() => {
+  const search = (props.form.blacklistSearch ?? '').trim().toLowerCase()
+  const sites = Array.isArray(props.form.blacklistSites) ? props.form.blacklistSites : []
+  if (!search) return sites
+  return sites.filter((site) => site.toLowerCase().includes(search))
+})
+
+function addBlacklistSite() {
+  const site = normalizeSite(props.form.blacklistSiteDraft ?? '')
+  if (!site) return
+  if (!props.form.blacklistSites.includes(site)) {
+    props.form.blacklistSites.push(site)
+  }
+  props.form.blacklistSiteDraft = ''
+  emit('input')
+}
+
+function removeBlacklistSite(site) {
+  props.form.blacklistSites = props.form.blacklistSites.filter((item) => item !== site)
+  emit('input')
+}
+
+function toggleBlacklistSite(site) {
+  if (props.form.blacklistSites.includes(site)) {
+    removeBlacklistSite(site)
+    return
+  }
+
+  props.form.blacklistSites.push(site)
+  emit('input')
+}
 </script>
 
 <style scoped>
 .alert-overlay {
-  position: absolute;
+  position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.72);
+  z-index: 100;
+  background: rgba(31, 31, 31, 0.48);
+  backdrop-filter: blur(2px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -79,9 +158,9 @@ defineEmits(['close', 'submit', 'input', 'toggle-blacklist'])
   width: 100%;
   min-height: 318px;
   max-height: calc(100% - 8px);
-  border: 1px solid #3d3d3d;
+  border: 1px solid var(--border-soft);
   border-radius: 12px;
-  background: #151515;
+  background: var(--bg-card);
   padding: 12px;
   display: flex;
   flex-direction: column;
@@ -89,7 +168,7 @@ defineEmits(['close', 'submit', 'input', 'toggle-blacklist'])
   overflow-y: auto;
   overflow-x: hidden;
   scrollbar-width: thin;
-  scrollbar-color: #666666 #171717;
+  scrollbar-color: var(--border-soft) transparent;
 }
 
 .alert-card::-webkit-scrollbar {
@@ -97,52 +176,57 @@ defineEmits(['close', 'submit', 'input', 'toggle-blacklist'])
 }
 
 .alert-card::-webkit-scrollbar-track {
-  background: #171717;
+  background: transparent;
   border-radius: 999px;
 }
 
 .alert-card::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, #5c5c5c, #3f3f3f);
+  background: var(--border-soft);
   border-radius: 999px;
-  border: 1px solid #1f1f1f;
 }
 
 .alert-card::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, #737373, #525252);
+  background: var(--text-muted);
 }
 
 .alert-card h2 {
   margin: 0;
-  font-size: 11px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-main);
 }
 
 .field {
   width: 100%;
-  border: 1px solid #333333;
+  border: 1px solid var(--border-soft);
   border-radius: 9px;
-  background: #0f0f0f;
-  color: #f0f0f0;
+  background: var(--bg-main);
+  color: var(--text-main);
   min-height: 36px;
-  padding: 10px 11px 8px;
-  font-size: 9px;
-  line-height: 2;
+  padding: 9px 11px;
+  font-size: 14px;
+  line-height: 1.4;
   transition: border-color 0.4s ease-in-out;
+}
+
+.field::placeholder {
+  color: var(--text-muted);
 }
 
 .field:focus {
   outline: none;
-  border-color: #6a6a6a;
+  border-color: var(--accent);
 }
 
 .field-area {
-  line-height: 2;
-  min-height: 122px;
-  max-height: 182px;
+  line-height: 1.5;
+  min-height: 110px;
+  max-height: 180px;
   resize: none;
   overflow-y: auto;
   overflow-x: hidden;
   scrollbar-width: thin;
-  scrollbar-color: #666666 #171717;
+  scrollbar-color: var(--border-soft) transparent;
 }
 
 .field-area::-webkit-scrollbar {
@@ -150,29 +234,28 @@ defineEmits(['close', 'submit', 'input', 'toggle-blacklist'])
 }
 
 .field-area::-webkit-scrollbar-track {
-  background: #171717;
+  background: transparent;
   border-radius: 999px;
 }
 
 .field-area::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, #5c5c5c, #3f3f3f);
+  background: var(--border-soft);
   border-radius: 999px;
-  border: 1px solid #1f1f1f;
 }
 
 .field-area::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, #737373, #525252);
+  background: var(--text-muted);
 }
 
 .helper {
   margin: 0;
-  color: #a3a3a3;
-  font-size: 9px;
-  line-height: 1.35;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.4;
 }
 
 .helper-error {
-  color: #ff6b6b;
+  color: var(--danger);
 }
 
 .extra-block {
@@ -181,63 +264,173 @@ defineEmits(['close', 'submit', 'input', 'toggle-blacklist'])
   gap: 8px;
 }
 
-.extra-toggle {
-  width: 100%;
-  min-height: 32px;
-  padding: 8px 10px 6px;
-  border-radius: 8px;
-  border: 1px solid #333333;
-  background: #101010;
-  color: #f0f0f0;
-  font-size: 9px;
+.blacklist-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+
+.blacklist-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-main);
+}
+
+.blacklist-count {
+  font-size: 14px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.blacklist-input-row {
+  display: flex;
+  gap: 8px;
+}
+
+.field-site {
+  min-height: 40px;
+}
+
+.field-search {
+  min-height: 40px;
+}
+
+.blacklist-panel {
+  min-height: 84px;
+  max-height: 160px;
+  padding: 4px 2px 2px 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-soft) transparent;
+}
+
+.blacklist-panel::-webkit-scrollbar {
+  width: 8px;
+}
+
+.blacklist-panel::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 999px;
+}
+
+.blacklist-panel::-webkit-scrollbar-thumb {
+  background: var(--border-soft);
+  border-radius: 999px;
+}
+
+.blacklist-panel::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+.blacklist-picked {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.blacklist-empty {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.site-add-btn {
+  min-width: 104px;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 9px;
+  border: 1px solid var(--border-soft);
+  background: var(--bg-main);
+  color: var(--text-main);
+  font-size: 14px;
+  font-weight: 500;
   transition: all 0.4s ease-in-out;
 }
 
-.extra-toggle-mark {
-  color: #8a8a8a;
-  font-size: 10px;
+.site-add-btn:hover {
+  border-color: var(--text-muted);
+  background: var(--bg-card);
 }
 
-.field-area-small {
-  min-height: 88px;
-  max-height: 120px;
-  font-size: 9px;
-  line-height: 2;
+.site-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border-soft);
+  background: var(--bg-main);
+  color: var(--text-main);
+  font-size: 14px;
+  line-height: 1.3;
+  transition: all 0.4s ease-in-out;
+}
+
+.site-chip:hover {
+  border-color: var(--text-muted);
+  transform: translateY(-1px);
+}
+
+.site-chip-selected,
+.site-chip-active {
+  background: var(--accent-soft);
+  border-color: var(--accent-soft);
+  color: var(--accent-deep);
+}
+
+.site-chip-active:hover {
+  background: rgba(209, 73, 91, 0.08);
+  border-color: rgba(209, 73, 91, 0.18);
+  color: var(--danger);
+}
+
+.site-chip-mark {
+  position: relative;
+  top: -2px;
+  font-size: 20px;
+  line-height: 1;
+  transform:rotate(45deg);
 }
 
 .alert-actions {
   display: flex;
-  gap: 6px;
+  gap: 8px;
+  margin-top: 2px;
 }
 
 .save-btn,
 .cancel-btn {
   flex: 1;
-  min-height: 32px;
-  border-radius: 8px;
-  border: 1px solid #4c4c4c;
-  background: #1a1a1a;
-  color: #f3f3f3;
-  font-size: 9px;
+  min-height: 44px;
+  border-radius: 12px;
+  border: 1px solid var(--border-soft);
+  background: var(--bg-card);
+  color: var(--text-main);
+  font-size: 14px;
+  font-weight: 500;
   transition: all 0.4s ease-in-out;
 }
 
 .save-btn {
-  border-color: #ffffff;
-  background: #ffffff;
-  color: #0b0b0b;
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #FBFAF7;
 }
 
 .save-btn:hover {
-  opacity: 0.9;
+  background: var(--accent-deep);
+  border-color: var(--accent-deep);
+  opacity: 1;
 }
 
 .cancel-btn:hover {
-  border-color: #f6f6f6;
-  background: #181818;
+  border-color: var(--text-muted);
+  transform: translateY(-1px);
 }
 
 .alert-fade-enter-active,
@@ -250,14 +443,4 @@ defineEmits(['close', 'submit', 'input', 'toggle-blacklist'])
   opacity: 0;
 }
 
-.blacklist-fade-enter-active,
-.blacklist-fade-leave-active {
-  transition: opacity 0.4s ease-in-out, transform 0.4s ease-in-out;
-}
-
-.blacklist-fade-enter-from,
-.blacklist-fade-leave-to {
-  opacity: 0;
-  transform: translateY(-6px);
-}
 </style>

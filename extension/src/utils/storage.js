@@ -7,20 +7,35 @@ function normalizeGoals(items) {
     id: goal.id,
     title: goal.title,
     description: goal.description,
+    status: goal.status === 'closed' ? 'closed' : 'active',
     blacklistSites: Array.isArray(goal.blacklistSites)
       ? goal.blacklistSites.map((site) => site.trim()).filter(Boolean)
       : []
   }))
 }
 
+function clampHealth(value) {
+  const num = Number(value)
+  if (!Number.isFinite(num)) return 80
+  return Math.max(0, Math.min(100, Math.round(num)))
+}
+
 export async function loadPetState() {
   const data = await chrome.storage.local.get(PET_KEY)
   const pet = data[PET_KEY]
-  return { mood: pet?.mood === 'default' ? 'default' : 'sleeping' }
+  return {
+    active: pet?.active === true,
+    health: clampHealth(pet?.health ?? 80)
+  }
 }
 
-export function savePetState(mood) {
-  return chrome.storage.local.set({ [PET_KEY]: { mood: mood === 'default' ? 'default' : 'sleeping' } })
+export function savePetState(pet) {
+  return chrome.storage.local.set({
+    [PET_KEY]: {
+      active: pet?.active === true,
+      health: clampHealth(pet?.health ?? 80)
+    }
+  })
 }
 
 export async function loadGoalsState() {

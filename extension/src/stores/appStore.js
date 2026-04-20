@@ -4,7 +4,8 @@ import { normalizeTitle } from '../utils/goalUtils.js'
 
 export const useAppStore = defineStore('app', {
   state: () => ({
-    petMood: 'sleeping',
+    petActive: false,
+    petHealth: 80,
     goals: [],
     selectedGoalId: null
   }),
@@ -15,18 +16,27 @@ export const useAppStore = defineStore('app', {
         id: 'free-goal',
         title: 'Свободный режим',
         description: '',
+        status: 'active',
         blacklistSites: []
       }
     },
 
     isFreeGoalSelected(state) {
       return state.selectedGoalId === null
+    },
+
+    activeGoals(state) {
+      return state.goals.filter((goal) => goal.status !== 'closed')
+    },
+
+    closedGoals(state) {
+      return state.goals.filter((goal) => goal.status === 'closed')
     }
   },
 
   actions: {
     savePet() {
-      return savePetState(this.petMood)
+      return savePetState({ active: this.petActive, health: this.petHealth })
     },
 
     saveGoals() {
@@ -34,12 +44,12 @@ export const useAppStore = defineStore('app', {
     },
 
     async startPet() {
-      this.petMood = 'default'
+      this.petActive = true
       await this.savePet()
     },
 
     async stopPet() {
-      this.petMood = 'sleeping'
+      this.petActive = false
       await this.savePet()
     },
 
@@ -49,11 +59,39 @@ export const useAppStore = defineStore('app', {
     },
 
     async selectGoal(goalId) {
-      if (!this.goals.some((goal) => goal.id === goalId)) {
+      const goal = this.goals.find((item) => item.id === goalId)
+      if (!goal || goal.status === 'closed') {
         return false
       }
 
       this.selectedGoalId = goalId
+      await this.saveGoals()
+      return true
+    },
+
+    async setGoalStatus(goalId, status) {
+      const goal = this.goals.find((item) => item.id === goalId)
+      if (!goal) return false
+
+      const nextStatus = status === 'closed' ? 'closed' : 'active'
+      goal.status = nextStatus
+
+      if (nextStatus === 'closed' && this.selectedGoalId === goalId) {
+        this.selectedGoalId = null
+      }
+
+      await this.saveGoals()
+      return true
+    },
+
+    async deleteGoal(goalId) {
+      const index = this.goals.findIndex((goal) => goal.id === goalId)
+      if (index === -1) return false
+
+      this.goals.splice(index, 1)
+      if (this.selectedGoalId === goalId) {
+        this.selectedGoalId = null
+      }
       await this.saveGoals()
       return true
     },
@@ -88,7 +126,11 @@ export const useAppStore = defineStore('app', {
         goal.title = title
         goal.description = description
         goal.blacklistSites = blacklistSites
-        this.selectedGoalId = goal.id
+
+        if (goal.status !== 'closed') {
+          this.selectedGoalId = goal.id
+        }
+
         await this.saveGoals()
         return true
       }
@@ -97,6 +139,7 @@ export const useAppStore = defineStore('app', {
         id: `goal-${Date.now()}`,
         title,
         description,
+        status: 'active',
         blacklistSites
       }
 
@@ -109,9 +152,11 @@ export const useAppStore = defineStore('app', {
     async loadFromStorage() {
       const pet = await loadPetState()
       const goalsState = await loadGoalsState()
-      this.petMood = pet.mood
+      this.petActive = pet.active
+      this.petHealth = pet.health
       this.goals = goalsState.items
-      this.selectedGoalId = this.goals.some((goal) => goal.id === goalsState.selectedGoalId) ? goalsState.selectedGoalId : null
+      const selected = this.goals.find((goal) => goal.id === goalsState.selectedGoalId)
+      this.selectedGoalId = selected && selected.status !== 'closed' ? selected.id : null
     }
   }
 })

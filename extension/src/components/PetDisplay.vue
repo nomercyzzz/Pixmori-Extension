@@ -1,124 +1,180 @@
-﻿<template>
-  <div class="pet-wrap" :class="`mood-${mood}`">
-    <div class="cat-box">
-      <img class="cat-sprite" :src="catSprite" alt="Белый пиксельный котик" />
-
-      <div v-if="mood === 'default' || mood === 'sleeping'" class="eyes-layer" aria-hidden="true">
-        <span class="eye eye-left"></span>
-        <span class="eye eye-right"></span>
-      </div>
-
-      <div v-if="mood === 'sleeping'" class="sleep-z" aria-hidden="true">
-        <span class="z z-1">Z</span>
-        <span class="z z-2">Z</span>
-        <span class="z z-3">Z</span>
-      </div>
+<template>
+  <div class="pet-frame">
+    <div class="pet-bounce" :class="{ 'pet-bounce-rest': phase === 'resting' || phase === 'idling' }">
+      <img
+        class="pet-stage"
+        :src="currentFrame"
+        alt="Питомец"
+        draggable="false"
+      />
     </div>
   </div>
 </template>
 
 <script setup>
-import catSprite from '../assets/pet-cat.svg'
+import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
-defineProps({
-  mood: {
-    type: String,
-    default: 'default'
+import petIdlePrimary from '../assets/pet/idle111.png'
+import petIdleSecondary from '../assets/pet/idle222.png'
+import petSleepy1 from '../assets/pet/sleepy1.png'
+import petSleepy2 from '../assets/pet/sleepy2.png'
+import petSleepy3 from '../assets/pet/sleepy3.png'
+
+const FALL_FRAMES = [petSleepy1, petSleepy2, petSleepy3]
+const WAKE_FRAMES = [petSleepy3, petSleepy2, petSleepy1, petIdlePrimary]
+const IDLE_FRAMES = [petIdlePrimary, petIdleSecondary, petIdlePrimary]
+
+const TRANSITION_FRAME_MS = 280
+const IDLE_FRAME_MS = 420
+const REST_MIN_MS = 2600
+const REST_MAX_MS = 4200
+
+const props = defineProps({
+  active: {
+    type: Boolean,
+    default: false
   }
 })
+
+const phase = ref(props.active ? 'resting' : 'sleeping')
+const currentFrame = ref(props.active ? petIdlePrimary : petSleepy3)
+
+let frameTimer = null
+let restTimer = null
+
+function clearTimers() {
+  if (frameTimer) {
+    clearInterval(frameTimer)
+    frameTimer = null
+  }
+  if (restTimer) {
+    clearTimeout(restTimer)
+    restTimer = null
+  }
+}
+
+function playSequence(frames, duration, onDone) {
+  if (frameTimer) {
+    clearInterval(frameTimer)
+    frameTimer = null
+  }
+  let i = 0
+  currentFrame.value = frames[0]
+  frameTimer = setInterval(() => {
+    i += 1
+    if (i >= frames.length) {
+      clearInterval(frameTimer)
+      frameTimer = null
+      onDone?.()
+      return
+    }
+    currentFrame.value = frames[i]
+  }, duration)
+}
+
+function getNextRestPause() {
+  return Math.round(REST_MIN_MS + Math.random() * (REST_MAX_MS - REST_MIN_MS))
+}
+
+function scheduleNextIdle() {
+  if (restTimer) clearTimeout(restTimer)
+  restTimer = setTimeout(() => {
+    restTimer = null
+    if (phase.value !== 'resting') return
+    playIdleOnce()
+  }, getNextRestPause())
+}
+
+function playIdleOnce() {
+  phase.value = 'idling'
+  playSequence(IDLE_FRAMES, IDLE_FRAME_MS, () => {
+    if (!props.active) return
+    phase.value = 'resting'
+    currentFrame.value = petIdlePrimary
+    scheduleNextIdle()
+  })
+}
+
+function wakeUp() {
+  phase.value = 'waking'
+  playSequence(WAKE_FRAMES, TRANSITION_FRAME_MS, () => {
+    if (!props.active) return
+    phase.value = 'resting'
+    currentFrame.value = petIdlePrimary
+    scheduleNextIdle()
+  })
+}
+
+function fallAsleep() {
+  phase.value = 'falling'
+  playSequence(FALL_FRAMES, TRANSITION_FRAME_MS, () => {
+    if (props.active) return
+    phase.value = 'sleeping'
+    currentFrame.value = petSleepy3
+  })
+}
+
+watch(
+  () => props.active,
+  (isActive, wasActive) => {
+    if (isActive === wasActive) return
+    clearTimers()
+    if (isActive) wakeUp()
+    else fallAsleep()
+  }
+)
+
+onMounted(() => {
+  if (props.active) {
+    phase.value = 'resting'
+    currentFrame.value = petIdlePrimary
+    scheduleNextIdle()
+  } else {
+    phase.value = 'sleeping'
+    currentFrame.value = petSleepy3
+  }
+})
+
+onBeforeUnmount(clearTimers)
 </script>
 
 <style scoped>
-.pet-wrap {
+.pet-frame {
   width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
+  animation: pet-appear 0.4s ease-in-out both;
 }
 
-.cat-box {
-  position: relative;
-  width: 224px;
-  height: 124px;
+.pet-bounce {
   display: flex;
   align-items: center;
   justify-content: center;
-  animation: pet-appear 0.4s ease-in-out;
-  transition: transform 0.4s ease-in-out, opacity 0.4s ease-in-out;
+  transform-origin: 50% 100%;
 }
 
-.cat-sprite {
-  width: 100%;
-  height: auto;
+.pet-bounce-rest {
+  animation: pet-breathe 3s ease-in-out infinite;
+}
+
+.pet-stage {
+  width: 200px;
+  height: 200px;
+  object-fit: contain;
   image-rendering: pixelated;
-  filter: drop-shadow(0 8px 10px rgba(255, 255, 255, 0.08));
+  user-select: none;
+  display: block;
 }
 
-.eyes-layer {
-  position: absolute;
-  inset: 0;
-}
-
-.eye {
-  position: absolute;
-  width: 18px;
-  height: 10px;
-  background: #101010;
-  transform: translateX(-50%);
-  transform-origin: center center;
-  animation: eye-blink 3.6s steps(1, end) infinite;
-}
-
-.eye-left {
-  left: 64%;
-  top: 74px;
-}
-
-.eye-right {
-  left: 82%;
-  top: 74px;
-}
-
-.sleep-z {
-  position: absolute;
-  right: 14px;
-  top: -8px;
-  display: flex;
-  gap: 2px;
-  pointer-events: none;
-}
-
-.z {
-  color: #ffffff;
-  font-size: 17px;
-  font-weight: 700;
-  line-height: 1;
-  opacity: 0;
-  text-shadow: 0 0 6px rgba(255, 255, 255, 0.45);
-  animation: z-float 1.8s ease-in-out infinite;
-}
-
-.z-2 {
-  animation-delay: 0.2s;
-}
-
-.z-3 {
-  animation-delay: 0.4s;
-}
-
-.mood-sleeping .cat-box {
-  opacity: 0.92;
-  animation: pet-breathe-sleep 2.8s ease-in-out infinite;
-}
-
-.mood-sleeping .eye {
-  height: 4px;
-  animation: none;
-}
-
-.mood-default .cat-box {
-  opacity: 1;
-  animation: pet-breathe-awake 2.4s ease-in-out infinite;
+@keyframes pet-breathe {
+  0%,
+  100% {
+    transform: scaleY(1);
+  }
+  50% {
+    transform: scaleY(1.02);
+  }
 }
 
 @keyframes pet-appear {
@@ -126,60 +182,9 @@ defineProps({
     opacity: 0;
     transform: translateY(6px);
   }
-
   to {
     opacity: 1;
     transform: translateY(0);
-  }
-}
-
-@keyframes pet-breathe-sleep {
-  0%,
-  100% {
-    transform: translateY(2px) scale(0.985);
-  }
-
-  50% {
-    transform: translateY(0) scale(0.99);
-  }
-}
-
-@keyframes pet-breathe-awake {
-  0%,
-  100% {
-    transform: translateY(0) scale(1);
-  }
-
-  50% {
-    transform: translateY(-2px) scale(1.01);
-  }
-}
-
-@keyframes eye-blink {
-  0%,
-  90%,
-  100% {
-    transform: translateX(-50%) scaleY(1);
-  }
-
-  93% {
-    transform: translateX(-50%) scaleY(0.2);
-  }
-}
-
-@keyframes z-float {
-  0% {
-    opacity: 0;
-    transform: translate(0, 5px);
-  }
-
-  35% {
-    opacity: 0.92;
-  }
-
-  100% {
-    opacity: 0;
-    transform: translate(10px, -7px);
   }
 }
 </style>

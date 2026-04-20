@@ -1,15 +1,15 @@
 <template>
   <section class="soon-page">
     <div class="soon-icon" aria-hidden="true">
-      <img :src="iconCat" alt="" draggable="false" />
+      <img :src="iconSettings" alt="" draggable="false" />
     </div>
-    <h1 class="soon-title">Питомец</h1>
-    <p class="soon-text">Скоро здесь появится профиль питомца</p>
+    <h1 class="soon-title">Настройки</h1>
+    <p class="soon-text">Скоро здесь появятся параметры расширения</p>
   </section>
 </template>
 
 <script setup>
-import iconCat from '../assets/icons/кошка.svg'
+import iconSettings from '../assets/icons/setting.svg'
 </script>
 
 <style scoped>

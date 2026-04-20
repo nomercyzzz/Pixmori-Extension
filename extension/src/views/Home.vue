@@ -2,14 +2,40 @@
   <section class="home-page">
     <header class="top-row page-block page-block-1">
       <p class="brand">Pixmore</p>
-      <div class="coins-box">
-        <span class="coins-label">Мори</span>
+      <div
+        class="coins-box"
+        aria-label="20 монет"
+        @mouseenter="playCoinsHoverAnimation"
+        @mouseleave="stopCoinsHoverAnimation"
+      >
+        <span class="coins-icon" aria-hidden="true">
+          <img
+            class="coins-icon-img"
+            :src="coinsAnimationPlaying ? iconCoinsAnim : iconCoinsStatic"
+            alt=""
+            draggable="false"
+          />
+        </span>
         <span class="coins-value">20</span>
+        <span class="coins-label">монет</span>
       </div>
     </header>
 
     <div class="pet-zone page-block page-block-2">
-      <PetDisplay :mood="store.petMood" />
+      <PetDisplay :active="store.petActive" />
+
+      <div class="health-bar" :aria-label="`Здоровье ${store.petHealth}%`">
+        <div class="health-meta">
+          <span class="health-heart" aria-hidden="true">
+            <img :src="iconHeart" alt="" draggable="false" />
+          </span>
+          <span class="health-label">Здоровье</span>
+          <span class="health-value">{{ store.petHealth }}%</span>
+        </div>
+        <div class="health-track">
+          <div class="health-fill" :style="{ width: `${store.petHealth}%` }"></div>
+        </div>
+      </div>
     </div>
 
     <div class="action-zone page-block page-block-3">
@@ -26,28 +52,59 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, onBeforeUnmount, ref } from 'vue'
 import PetDisplay from '../components/PetDisplay.vue'
 import { useAppStore } from '../stores/appStore'
+import iconCoinsStatic from '../assets/icons/стопка-монет.svg'
+import iconCoinsAnim from '../assets/icons/стопка-монет-96.apng.png'
+import iconHeart from '../assets/icons/лайк-с-заливкой.svg'
 
 const store = useAppStore()
+const COINS_ANIMATION_MS = 1148
+const coinsAnimationPlaying = ref(false)
+let coinsAnimationTimerId = null
 
-const isSleeping = computed(() => store.petMood === 'sleeping')
-
-const toggleButtonText = computed(() => (isSleeping.value ? 'Старт' : 'Стоп'))
+const toggleButtonText = computed(() => (store.petActive ? 'Стоп' : 'Старт'))
 
 const buttonModeClass = computed(() =>
-  isSleeping.value ? 'toggle-btn-start' : 'toggle-btn-stop'
+  store.petActive ? 'toggle-btn-stop' : 'toggle-btn-start'
 )
 
 async function togglePet() {
-  if (isSleeping.value) {
-    await store.startPet()
+  if (store.petActive) {
+    await store.stopPet()
     return
   }
 
-  await store.stopPet()
+  await store.startPet()
 }
+
+function playCoinsHoverAnimation() {
+  if (coinsAnimationTimerId !== null) {
+    clearTimeout(coinsAnimationTimerId)
+  }
+
+  coinsAnimationPlaying.value = true
+  coinsAnimationTimerId = window.setTimeout(() => {
+    coinsAnimationPlaying.value = false
+    coinsAnimationTimerId = null
+  }, COINS_ANIMATION_MS)
+}
+
+function stopCoinsHoverAnimation() {
+  if (coinsAnimationTimerId !== null) {
+    clearTimeout(coinsAnimationTimerId)
+    coinsAnimationTimerId = null
+  }
+
+  coinsAnimationPlaying.value = false
+}
+
+onBeforeUnmount(() => {
+  if (coinsAnimationTimerId !== null) {
+    clearTimeout(coinsAnimationTimerId)
+  }
+})
 </script>
 
 <style scoped>
@@ -55,13 +112,14 @@ async function togglePet() {
   height: 100%;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 14px;
+  min-height: 0;
 }
 
 .page-block {
   opacity: 0;
   transform: translateY(14px);
-  animation: block-drop 0.42s ease-out forwards;
+  animation: block-drop 0.42s ease-in-out forwards;
 }
 
 .page-block-1 {
@@ -80,41 +138,145 @@ async function togglePet() {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 2px 2px 0;
 }
 
 .brand {
-  margin: 2px 0 0;
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.015em;
+  margin: 0;
+  font-family: var(--font-pixel);
+  font-size: 16px;
+  letter-spacing: 0.04em;
+  color: var(--text-main);
 }
 
 .coins-box {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: 10px;
-  border: 2px solid #353535;
-  border-radius: 9px;
-  background: #111111;
-  padding: 8px 8px 4px 10px;
+  gap: 8px;
+  border: 1px solid var(--border-soft);
+  border-radius: 999px;
+  background: var(--bg-card);
+  padding: 8px 18px 8px 14px;
+  transition: transform var(--ease), border-color var(--ease);
 }
 
-.coins-label {
-  font-size: 10px;
-  color: #9d9d9d;
-  text-transform: none;
-  letter-spacing: 0;
+.coins-box:hover {
+  transform: translateY(-1px);
+  border-color: var(--text-muted);
+}
+
+.coins-icon {
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.coins-icon-img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
 }
 
 .coins-value {
-  font-size: 10px;
-  color: #f3f3f3;
+  font-size: 15px;
+  color: var(--text-main);
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.coins-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 500;
 }
 
 .pet-zone {
-  margin-top: 64px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 80px;
+  min-height: 0;
+}
+
+.health-bar {
+  width: 100%;
+  max-width: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px;
+  border: 0;
+  border-radius: 14px;
+  background: transparent;
+  cursor: default;
+}
+
+.health-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.health-heart {
+  display: inline-flex;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  transition: transform 0.4s ease;
+  transform-origin: center;
+}
+
+.health-heart img {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.health-bar:hover .health-heart {
+  animation: heart-pulse 0.8s ease-in-out;
+}
+
+.health-label {
+  font-size: 14px;
+  color: var(--text-muted);
+  font-weight: 500;
+  flex: 1;
+}
+
+.health-value {
+  font-size: 14px;
+  color: var(--text-main);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.health-track {
+  width: 100%;
+  height: 12px;
+  border-radius: 999px;
+  background: var(--border-soft);
+  overflow: hidden;
+}
+
+.health-fill {
+  height: 100%;
+  background-image:
+    linear-gradient(90deg, rgba(111, 126, 242, 0.84) 0%, rgba(132, 145, 248, 0.92) 28%, rgba(98, 113, 229, 0.86) 52%, rgba(141, 153, 249, 0.9) 76%, rgba(111, 126, 242, 0.84) 100%),
+    radial-gradient(circle at 18% 50%, rgba(255, 255, 255, 0.09) 0%, rgba(255, 255, 255, 0.05) 16%, transparent 36%),
+    radial-gradient(circle at 82% 50%, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0.04) 14%, transparent 34%);
+  background-size: 220% 100%, 170% 100%, 190% 100%;
+  background-position: 0% 50%, 0% 50%, 100% 50%;
+  border-radius: inherit;
+  transition: width 0.4s ease-in-out;
+  animation: health-flow 5.6s ease-in-out infinite alternate;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
 .action-zone {
@@ -122,23 +284,27 @@ async function togglePet() {
   flex-direction: column;
   align-items: center;
   width: 100%;
-  gap: 14px;
-  margin-top: 36px;
+  gap: 36px;
+  margin-top: 16px;
+  padding-bottom: 4px;
+  flex-shrink: 0;
 }
 
 .toggle-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 40px;
-  min-width: 160px;
-  padding: 8px 8px 0 18px;
-  margin-top: 0;
-  border-radius: 11px;
-  font-size: 12px;
-  font-weight: 600;
-  border: 1px solid #3a3a3a;
-  transition: all 0.4s ease-in-out;
+  width: 100%;
+  max-width: 300px;
+  min-height: 60px;
+  padding: 22px 18px 12px 20px;
+  border-radius: 14px;
+  font-family: var(--font-pixel);
+  font-size: 18px;
+  letter-spacing: 0.04em;
+  border: 1px solid transparent;
+  transition: transform var(--ease), box-shadow var(--ease), border-color var(--ease), background var(--ease), color var(--ease);
+  box-shadow: 0 2px 0 rgba(31, 31, 31, 0.04);
 }
 
 .toggle-btn-text {
@@ -146,55 +312,99 @@ async function togglePet() {
   transform: translateY(-1px);
 }
 
+.toggle-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 20px rgba(31, 31, 31, 0.08);
+  opacity: 1;
+}
+
 .toggle-btn-start {
-  background: #ffffff;
-  color: #090909;
+  background: var(--accent);
+  color: #FBFAF7;
+  border-color: var(--accent);
 }
 
 .toggle-btn-start:hover {
-  opacity: 0.9;
+  background: var(--accent-deep);
+  border-color: var(--accent-deep);
 }
 
 .toggle-btn-stop {
-  color: #f6f6f6;
+  background: var(--bg-card);
+  color: var(--text-main);
+  border-color: var(--border-soft);
 }
 
 .toggle-btn-stop:hover {
-  border-color: #f6f6f6;
-  background: #181818;
+  background: var(--accent-soft);
+  border-color: var(--accent-soft);
 }
 
 .goal-mini {
-  width: fit-content;
-  min-width: 200px;
-  margin-top: 0;
-  border: 1px solid #2b2b2b;
-  border-radius: 11px;
-  background: #101010;
-  padding: 8px 12px;
+  width: 100%;
+  max-width: 300px;
+  border: 1px solid var(--border-soft);
+  border-radius: 12px;
+  background: var(--bg-card);
+  padding: 10px 14px;
   text-align: center;
   overflow: hidden;
+  transition: transform var(--ease), box-shadow var(--ease), border-color var(--ease), background var(--ease);
+}
+
+.goal-mini:hover {
+  transform: translateY(-3px);
+  border-color: var(--text-muted);
+  box-shadow: 0 10px 20px rgba(31, 31, 31, 0.06);
 }
 
 .goal-mini-label {
-  margin-bottom: 4px;
-  color: #a6a6a6;
-  font-size: 8px;
+  margin: 0 0 3px;
+  color: var(--text-muted);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 500;
 }
 
 .goal-mini-title {
-  color: #fafafa;
-  font-size: 10px;
+  margin: 0;
+  color: var(--text-main);
+  font-size: 14px;
   font-weight: 600;
-  line-height: 2;
-  padding: 1px 0 0;
+  line-height: 1.4;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
-  max-height: 3.5em;
   overflow: hidden;
   text-overflow: ellipsis;
   overflow-wrap: anywhere;
+}
+
+@keyframes heart-pulse {
+  0%,
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+  20% {
+    transform: scale(1.25) rotate(-10deg);
+  }
+  45% {
+    transform: scale(1.1) rotate(8deg);
+  }
+  70% {
+    transform: scale(1.18) rotate(-4deg);
+  }
+}
+
+@keyframes health-flow {
+  from {
+    background-position: 0% 50%, 0% 50%, 100% 50%;
+  }
+  to {
+    background-position: 100% 50%, 100% 50%, 0% 50%;
+  }
 }
 
 @keyframes block-drop {
@@ -202,7 +412,6 @@ async function togglePet() {
     opacity: 0;
     transform: translateY(14px);
   }
-
   to {
     opacity: 1;
     transform: translateY(0);

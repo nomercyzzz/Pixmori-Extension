@@ -1,13 +1,24 @@
-﻿@import "tailwindcss";
+@import "tailwindcss";
 
 @font-face {
   font-family: "Digital Proper Pixel";
   src: url("/fonts/DigitalProperPixel-Regular.otf") format("opentype");
   font-display: swap;
 }
+
 :root {
-  --bg-main: #060606;
-  --text-main: #f3f3f3;
+  --bg-main: #F4F1EA;
+  --bg-card: #FBFAF7;
+  --border-soft: #D8D2C7;
+  --accent: #7C8CFF;
+  --accent-soft: #E3E7FF;
+  --accent-deep: #5B6CE6;
+  --text-main: #1F1F1F;
+  --text-muted: #6E6A63;
+  --danger: #D1495B;
+  --ease: 0.4s ease-in-out;
+  --font-pixel: "Digital Proper Pixel", "Courier New", monospace;
+  --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
 * {
@@ -22,9 +33,13 @@ body {
   min-height: 100vh;
   margin: 0;
   overflow: hidden;
-  background: radial-gradient(circle at 20% 0%, #111111, var(--bg-main) 62%);
+  background: var(--bg-main);
   color: var(--text-main);
-  font-family: "Digital Proper Pixel";
+  font-family: var(--font-body);
+  font-size: 13px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 #app {
@@ -34,16 +49,28 @@ body {
   overflow: hidden;
 }
 
-button,input,textarea {
+button,
+input,
+textarea {
   font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
 }
 
 button:not(.goal-edit-btn):hover {
-  opacity: 0.9;
+  opacity: 0.92;
 }
 
 button:active {
   transform: scale(0.98);
+}
+
+.font-pixel {
+  font-family: var(--font-pixel);
+  letter-spacing: 0.02em;
 }
 
 .panel-shell {
@@ -52,11 +79,13 @@ button:active {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0));
+  background: var(--bg-main);
 }
 
 .panel-main {
   flex: 1;
-  padding: 16px;
+  padding: 16px 16px 12px;
   overflow: hidden;
+  min-width: 0;
+  min-height: 0;
 }
