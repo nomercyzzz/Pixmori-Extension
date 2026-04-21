@@ -6,7 +6,11 @@
       </div>
     </section>
 
-    <div class="section-tabs page-block page-block-2" role="tablist" aria-label="разделы питомца">
+    <div class="pet-health-shell page-block page-block-2">
+      <HealthBar :value="store.petHealth" />
+    </div>
+
+    <div class="section-tabs page-block page-block-3" role="tablist" aria-label="разделы питомца">
       <button
         v-for="section in sections"
         :key="section.id"
@@ -20,82 +24,62 @@
       </button>
     </div>
 
-    <section class="catalog-panel page-block page-block-3">
-      <div v-if="activeSection === 'pets'" class="catalog-grid">
+    <section class="catalog-panel page-block page-block-4">
+      <TransitionGroup
+        name="section-catalog-motion"
+        tag="div"
+        class="catalog-grid"
+        @before-leave="lockLeavingCardPosition"
+        @after-leave="clearLeavingCardPosition"
+        @leave-cancelled="clearLeavingCardPosition"
+      >
         <button
-          v-for="item in petItems"
-          :key="item.id"
-          type="button"
-          class="catalog-card catalog-card-pet catalog-card-clickable"
-          :class="{ 'catalog-card-selected': isItemSelected(item.id) }"
-          :aria-label="getItemAriaLabel(item)"
-          :aria-pressed="isItemSelected(item.id)"
-          @click="handleItemClick(item)"
-        >
-          <span
-            class="selection-dot"
-            :class="{ 'selection-dot-visible': isItemSelected(item.id) }"
-            aria-hidden="true"
-          ></span>
-
-          <div class="card-media card-media-pet">
-            <img
-              v-if="item.avatar"
-              class="card-image card-image-pet"
-              :src="item.avatar"
-              alt=""
-              draggable="false"
-            />
-            <span v-else class="card-placeholder">скоро...</span>
-          </div>
-
-          <div class="card-caption">
-            <p class="card-title">{{ item.name }}</p>
-          </div>
-        </button>
-      </div>
-
-      <div v-else class="catalog-grid">
-        <button
-          v-for="item in activeItems"
-          :key="item.id"
+          v-for="item in sectionItems"
+          :key="`${activeSection}-${item.id}`"
           type="button"
           class="catalog-card catalog-card-clickable"
-          :class="{ 'catalog-card-selected': activeSection !== 'food' && isItemSelected(item.id) }"
+          :class="{
+            'catalog-card-pet': isPetsSection,
+            'catalog-card-selected': !isFoodSection && isItemSelected(item.id)
+          }"
           :aria-label="getItemAriaLabel(item)"
-          :aria-pressed="activeSection === 'food' ? undefined : isItemSelected(item.id)"
+          :aria-pressed="isFoodSection ? undefined : isItemSelected(item.id)"
           @click="handleItemClick(item)"
         >
           <span
-            v-if="activeSection === 'accessories'"
+            v-if="!isFoodSection"
             class="selection-dot"
             :class="{ 'selection-dot-visible': isItemSelected(item.id) }"
             aria-hidden="true"
           ></span>
 
-          <div class="card-media card-media-item">
+          <div class="card-media" :class="isPetsSection ? 'card-media-pet' : 'card-media-item'">
             <img
-              v-if="item.image"
-              class="card-image card-image-food"
-              :src="item.image"
+              v-if="getItemVisual(item)"
+              class="card-image"
+              :class="isPetsSection ? 'card-image-pet' : 'card-image-food'"
+              :src="getItemVisual(item)"
               alt=""
+              decoding="async"
               draggable="false"
             />
             <span v-else class="card-placeholder">скоро...</span>
           </div>
 
           <div class="card-caption">
-            <div class="card-title-row" :class="{ 'card-title-row-food': activeSection === 'food' }">
+            <div class="card-title-row" :class="{ 'card-title-row-food': isFoodSection }">
               <p class="card-title">{{ item.name }}</p>
-              <span v-if="activeSection === 'food'" class="count-badge">{{ item.count }}</span>
+              <span v-if="isFoodSection" class="count-badge">{{ item.count }}</span>
             </div>
           </div>
         </button>
-      </div>
+      </TransitionGroup>
 
-      <div v-if="activeSection === 'food' && activeItems.length === 0" class="empty-message">
-        Еда закончилась. Загляните в магазин за новыми угощениями.
-      </div>
+      <Transition name="empty-fade">
+        <div v-if="isFoodSection && sectionItems.length === 0" class="empty-message">
+          Еда закончилась. Загляните в магазин за новыми угощениями.
+        </div>
+      </Transition>
 
       <div class="shop-panel">
         <div class="shop-copy">
@@ -109,16 +93,20 @@
 </template>
 
 <script setup>
-import { computed, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import HealthBar from '../components/HealthBar.vue'
 import PetDisplay from '../components/PetDisplay.vue'
+import { useAppStore } from '../stores/appStore'
 import foodBurger from '../assets/food/15_burger.png'
 import foodCookies from '../assets/food/28_cookies.png'
 import petIdlePrimary from '../assets/pet/idle111.png'
 
 const router = useRouter()
+const store = useAppStore()
 
 const petItems = [
+  { id: 'cat', name: 'котик', avatar: petIdlePrimary},
   { id: 'fox', name: 'лис', comingSoon: true },
   { id: 'rabbit', name: 'кролик', comingSoon: true },
   { id: 'panda', name: 'панда', comingSoon: true },
@@ -126,8 +114,7 @@ const petItems = [
   { id: 'puppy', name: 'щенок', comingSoon: true },
   { id: 'owl', name: 'сова', comingSoon: true },
   { id: 'raccoon', name: 'енот', comingSoon: true },
-  { id: 'bear', name: 'мишка', comingSoon: true },
-  { id: 'cat', name: 'котик', avatar: petIdlePrimary, comingSoon: false }
+  { id: 'bear', name: 'мишка', comingSoon: true }
 ]
 
 const accessoryItems = [
@@ -150,8 +137,15 @@ const sections = [
   { id: 'food', label: 'еда' }
 ]
 
+const isPetsSection = computed(() => activeSection.value === 'pets')
+const isFoodSection = computed(() => activeSection.value === 'food')
+
 const activeItems = computed(() => {
   return activeSection.value === 'food' ? foodItems : accessoryItems
+})
+
+const sectionItems = computed(() => {
+  return isPetsSection.value ? petItems : activeItems.value
 })
 
 function isItemSelected(itemId) {
@@ -203,9 +197,63 @@ function getItemAriaLabel(item) {
   return item.comingSoon ? `${item.name}, скоро` : item.name
 }
 
+function getItemVisual(item) {
+  return isPetsSection.value ? item.avatar : item.image
+}
+
+function lockLeavingCardPosition(element) {
+  const parentElement = element.parentElement
+
+  if (!parentElement) {
+    return
+  }
+
+  const parentRect = parentElement.getBoundingClientRect()
+  const elementRect = element.getBoundingClientRect()
+
+  element.style.width = `${elementRect.width}px`
+  element.style.height = `${elementRect.height}px`
+  element.style.left = `${elementRect.left - parentRect.left}px`
+  element.style.top = `${elementRect.top - parentRect.top}px`
+}
+
+function clearLeavingCardPosition(element) {
+  element.style.width = ''
+  element.style.height = ''
+  element.style.left = ''
+  element.style.top = ''
+}
+
+function warmupImageAsset(source) {
+  if (!source) {
+    return
+  }
+
+  const image = new Image()
+  image.decoding = 'async'
+  image.src = source
+
+  if (typeof image.decode === 'function') {
+    image.decode().catch(() => {})
+  }
+}
+
 function goToShop() {
   router.push({ name: 'shop' })
 }
+
+onMounted(() => {
+  const imageSources = [
+    ...new Set(
+      [
+        ...petItems.map((item) => item.avatar),
+        ...foodItems.map((item) => item.image)
+      ].filter(Boolean)
+    )
+  ]
+
+  imageSources.forEach((source) => warmupImageAsset(source))
+})
 </script>
 
 <style scoped>
@@ -235,6 +283,10 @@ function goToShop() {
   animation-delay: 0.2s;
 }
 
+.page-block-4 {
+  animation-delay: 0.28s;
+}
+
 .hero-shell {
   display: flex;
   justify-content: center;
@@ -243,7 +295,7 @@ function goToShop() {
 
 .hero-stage {
   position: relative;
-  height: 250px;
+  height: 200px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -253,6 +305,16 @@ function goToShop() {
 .hero-stage :deep(.pet-frame) {
   position: relative;
   z-index: 1;
+}
+
+.pet-health-shell {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.pet-health-shell :deep(.health-bar) {
+  padding: 0 2px;
 }
 
 .section-tabs {
@@ -296,6 +358,7 @@ function goToShop() {
   display: flex;
   flex: 1;
   flex-direction: column;
+  position: relative;
   gap: 12px;
   min-height: 0;
   padding: 14px;
@@ -303,7 +366,8 @@ function goToShop() {
   border-radius: 16px;
   background: var(--bg-card);
   overflow-x: hidden;
-  overflow-y: auto;
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
 }
 
 .catalog-grid {
@@ -311,13 +375,13 @@ function goToShop() {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
   align-content: start;
+  position: relative;
 }
 
 .catalog-card {
   position: relative;
   display: flex;
   flex-direction: column;
-  min-width: 0;
   padding: 10px;
   border: 1px solid rgba(121, 130, 176, 0.18);
   border-radius: 16px;
@@ -325,6 +389,9 @@ function goToShop() {
     linear-gradient(180deg, rgba(255, 255, 255, 0.94) 0%, rgba(248, 246, 255, 0.92) 100%),
     var(--bg-main);
   transition: transform var(--ease), border-color var(--ease), box-shadow var(--ease);
+  transform-origin: center top;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
 }
 
 .catalog-card-clickable {
@@ -465,6 +532,38 @@ function goToShop() {
   text-align: center;
 }
 
+.section-catalog-motion-enter-active,
+.section-catalog-motion-leave-active {
+  transition: opacity var(--ease), transform var(--ease);
+}
+
+.section-catalog-motion-leave-active {
+  position: absolute;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.section-catalog-motion-move {
+  transition: transform var(--ease);
+}
+
+.section-catalog-motion-enter-from,
+.section-catalog-motion-leave-to {
+  opacity: 0;
+  transform: translateY(8px) scale(0.985);
+}
+
+.empty-fade-enter-active,
+.empty-fade-leave-active {
+  transition: opacity var(--ease), transform var(--ease);
+}
+
+.empty-fade-enter-from,
+.empty-fade-leave-to {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
 .shop-panel {
   display: flex;
   flex-direction: column;
@@ -562,4 +661,5 @@ function goToShop() {
     transform: translateY(0);
   }
 }
+
 </style>
