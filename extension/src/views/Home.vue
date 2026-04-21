@@ -5,6 +5,11 @@
       <div
         class="coins-box"
         aria-label="20 монет"
+        role="button"
+        tabindex="0"
+        @click="goToShop"
+        @keydown.enter.prevent="goToShop"
+        @keydown.space.prevent="goToShop"
         @mouseenter="playCoinsHoverAnimation"
         @mouseleave="stopCoinsHoverAnimation"
       >
@@ -17,12 +22,13 @@
           />
         </span>
         <span class="coins-value">20</span>
-        <span class="coins-label">монет</span>
       </div>
     </header>
 
     <div class="pet-zone page-block page-block-2">
-      <PetDisplay :active="store.petActive" />
+      <div class="pet-stage">
+        <PetDisplay :active="store.petActive" />
+      </div>
 
       <div class="health-bar" :aria-label="`Здоровье ${store.petHealth}%`">
         <div class="health-meta">
@@ -43,7 +49,14 @@
         <span class="toggle-btn-text">{{ toggleButtonText }}</span>
       </button>
 
-      <article class="goal-mini">
+      <article
+        class="goal-mini"
+        role="button"
+        tabindex="0"
+        @click="goToGoal"
+        @keydown.enter.prevent="goToGoal"
+        @keydown.space.prevent="goToGoal"
+      >
         <p class="goal-mini-label">Текущая цель</p>
         <p class="goal-mini-title">{{ store.selectedGoal.title }}</p>
       </article>
@@ -53,6 +66,7 @@
 
 <script setup>
 import { computed, onBeforeUnmount, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import PetDisplay from '../components/PetDisplay.vue'
 import { useAppStore } from '../stores/appStore'
 import iconCoinsStatic from '../assets/icons/стопка-монет.svg'
@@ -60,6 +74,7 @@ import iconCoinsAnim from '../assets/icons/стопка-монет-96.apng.png'
 import iconHeart from '../assets/icons/лайк-с-заливкой.svg'
 
 const store = useAppStore()
+const router = useRouter()
 const COINS_ANIMATION_MS = 1148
 const coinsAnimationPlaying = ref(false)
 let coinsAnimationTimerId = null
@@ -77,6 +92,14 @@ async function togglePet() {
   }
 
   await store.startPet()
+}
+
+function goToShop() {
+  router.push({ name: 'shop' })
+}
+
+function goToGoal() {
+  router.push({ name: 'goal' })
 }
 
 function playCoinsHoverAnimation() {
@@ -157,6 +180,7 @@ onBeforeUnmount(() => {
   border-radius: 999px;
   background: var(--bg-card);
   padding: 8px 18px 8px 14px;
+  cursor: pointer;
   transition: transform var(--ease), border-color var(--ease);
 }
 
@@ -188,11 +212,7 @@ onBeforeUnmount(() => {
   font-variant-numeric: tabular-nums;
 }
 
-.coins-label {
-  font-size: 12px;
-  color: var(--text-muted);
-  font-weight: 500;
-}
+
 
 .pet-zone {
   flex: none;
@@ -203,6 +223,21 @@ onBeforeUnmount(() => {
   gap: 8px;
   margin-top: 80px;
   min-height: 0;
+}
+
+.pet-stage {
+  position: relative;
+  width: 100%;
+  min-height: 210px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+}
+
+.pet-stage :deep(.pet-frame) {
+  position: relative;
+  z-index: 1;
 }
 
 .health-bar {
@@ -285,7 +320,7 @@ onBeforeUnmount(() => {
   align-items: center;
   width: 100%;
   gap: 36px;
-  margin-top: 16px;
+  margin-top: 36px;
   padding-bottom: 4px;
   flex-shrink: 0;
 }
@@ -294,9 +329,8 @@ onBeforeUnmount(() => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 100%;
-  max-width: 300px;
-  min-height: 60px;
+  width: 300px;
+  height: 80px;
   padding: 22px 18px 12px 20px;
   border-radius: 14px;
   font-family: var(--font-pixel);
@@ -349,6 +383,7 @@ onBeforeUnmount(() => {
   padding: 10px 14px;
   text-align: center;
   overflow: hidden;
+  cursor: pointer;
   transition: transform var(--ease), box-shadow var(--ease), border-color var(--ease), background var(--ease);
 }
 
