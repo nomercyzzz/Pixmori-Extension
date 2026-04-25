@@ -1,16 +1,30 @@
-const PET_KEY = 'pixmori:pet'
-const GOALS_KEY = 'pixmori:goals'
+const PET_KEY = 'pixmori-pet'
+const GOALS_KEY = 'pixmori-goals'
+
+function normalizeBlacklistSites(sites) {
+  if (!Array.isArray(sites)) return []
+
+  return sites
+    .map((site) => String(site ?? '').trim().toLowerCase())
+    .filter(Boolean)
+    .map((site) =>
+        site
+        .replace(/^https?:\/\//, '')
+        .replace(/^www\./, '')
+        .replace(/[?#].*$/, '')
+        .replace(/\/+$/, '')
+    )
+}
 
 function normalizeGoals(items) {
   if (!Array.isArray(items)) return []
+
   return items.map((goal) => ({
     id: goal.id,
     title: goal.title,
     description: goal.description,
     status: goal.status === 'closed' ? 'closed' : 'active',
-    blacklistSites: Array.isArray(goal.blacklistSites)
-      ? goal.blacklistSites.map((site) => site.trim()).filter(Boolean)
-      : []
+    blacklistSites: normalizeBlacklistSites(goal.blacklistSites)
   }))
 }
 
@@ -22,15 +36,15 @@ function clampHealth(value) {
 
 export async function loadPetState() {
   const data = await chrome.storage.local.get(PET_KEY)
-  const pet = data[PET_KEY]
+
   return {
-    active: pet?.active === true,
-    health: clampHealth(pet?.health ?? 80)
+    active: data[PET_KEY]?.active === true,
+    health: clampHealth(data[PET_KEY]?.health ?? 80)
   }
 }
 
-export function savePetState(pet) {
-  return chrome.storage.local.set({
+export async function savePetState(pet) {
+  await chrome.storage.local.set({
     [PET_KEY]: {
       active: pet?.active === true,
       health: clampHealth(pet?.health ?? 80)
@@ -40,10 +54,18 @@ export function savePetState(pet) {
 
 export async function loadGoalsState() {
   const data = await chrome.storage.local.get(GOALS_KEY)
-  const goals = data[GOALS_KEY]
-  return { items: normalizeGoals(goals?.items), selectedGoalId: goals?.selectedGoalId ?? null }
+
+  return {
+    items: normalizeGoals(data[GOALS_KEY]?.items),
+    selectedGoalId: data[GOALS_KEY]?.selectedGoalId ?? null
+  }
 }
 
-export function saveGoalsState(goals, selectedGoalId) {
-  return chrome.storage.local.set({ [GOALS_KEY]: { items: normalizeGoals(goals), selectedGoalId: selectedGoalId ?? null } })
+export async function saveGoalsState(goals, selectedGoalId) {
+  await chrome.storage.local.set({
+    [GOALS_KEY]: {
+      items: normalizeGoals(goals),
+      selectedGoalId: selectedGoalId ?? null
+    }
+  })
 }

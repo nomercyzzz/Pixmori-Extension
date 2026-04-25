@@ -11,93 +11,63 @@
       :aria-label="item.label"
       :title="item.label"
       @click="goTo(item.path)"
-      @mouseenter="playHoverAnimation(index)"
-      @mouseleave="stopHoverAnimation(index)"
     >
       <span class="nav-icon" aria-hidden="true">
-        <img class="nav-icon-img" :src="animatedIndex === index ? item.iconAnim : item.iconStatic" alt="" draggable="false" />
+        <span class="nav-icon-shape" :style="getIconStyle(item, index)"></span>
       </span>
     </button>
   </nav>
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, ref } from 'vue'
+import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
-import iconHomeStatic from '../assets/icons/главная.svg'
-import iconGoalStatic from '../assets/icons/goal.svg'
-import iconCatStatic from '../assets/icons/кошка.svg'
-import iconShopStatic from '../assets/icons/магазин.svg'
-import iconSettingsStatic from '../assets/icons/setting.svg'
+import iconGoal from '../assets/icons/goal.svg'
+import iconHome from '../assets/icons/home.svg'
+import iconPet from '../assets/icons/pet.svg'
+import iconSettings from '../assets/icons/setting.svg'
+import iconShop from '../assets/icons/shop.svg'
 
-import iconHomeAnim from '../assets/icons/главная-96.apng.png'
-import iconGoalAnim from '../assets/icons/goal-96.apng.png'
-import iconCatAnim from '../assets/icons/кошка-80.apng.png'
-import iconShopAnim from '../assets/icons/магазин.apng.png'
-import iconSettingsAnim from '../assets/icons/setting-96.apng.png'
+const INACTIVE_ICON_COLOR = 'var(--text-muted)'
+const ACTIVE_ICON_COLOR = 'var(--accent-deep)'
 
 const items = [
-  { path: '/', label: 'Главная', iconStatic: iconHomeStatic, iconAnim: iconHomeAnim },
-  { path: '/goal', label: 'Цель', iconStatic: iconGoalStatic, iconAnim: iconGoalAnim },
-  { path: '/pet', label: 'Питомец', iconStatic: iconCatStatic, iconAnim: iconCatAnim },
-  { path: '/shop', label: 'Магазин', iconStatic: iconShopStatic, iconAnim: iconShopAnim },
-  { path: '/settings', label: 'Настройки', iconStatic: iconSettingsStatic, iconAnim: iconSettingsAnim }
+  { path: '/', label: 'Главная', icon: iconHome },
+  { path: '/goal', label: 'Цели', icon: iconGoal },
+  { path: '/pet', label: 'Питомец', icon: iconPet },
+  { path: '/shop', label: 'Магазин', icon: iconShop },
+  { path: '/settings', label: 'Настройки', icon: iconSettings }
 ]
 
 const route = useRoute()
 const router = useRouter()
-const NAV_ICON_ANIMATION_MS = 1148
-const animatedIndex = ref(-1)
-let animationTimerId = null
 
 const activeIndex = computed(() => {
   const idx = items.findIndex((item) => {
     if (item.path === '/') return route.path === '/'
     return route.path === item.path || route.path.startsWith(`${item.path}/`)
   })
+
   return idx === -1 ? 0 : idx
 })
 
 const indicatorStyle = computed(() => ({
-  transform: `translateX(calc(${activeIndex.value} * 100%))`
+  transform: `translateX(calc(${activeIndex.value} * 100%))`,
+  background: 'var(--accent-soft)'
 }))
 
-function playHoverAnimation(index) {
-  if (animationTimerId !== null) {
-    clearTimeout(animationTimerId)
+function getIconStyle(item, index) {
+  return {
+    '--icon-url': `url("${item.icon}")`,
+    backgroundColor: activeIndex.value === index ? ACTIVE_ICON_COLOR : INACTIVE_ICON_COLOR
   }
-
-  animatedIndex.value = index
-  animationTimerId = window.setTimeout(() => {
-    if (animatedIndex.value === index) {
-      animatedIndex.value = -1
-    }
-    animationTimerId = null
-  }, NAV_ICON_ANIMATION_MS)
-}
-
-function stopHoverAnimation(index) {
-  if (animatedIndex.value !== index) return
-
-  if (animationTimerId !== null) {
-    clearTimeout(animationTimerId)
-    animationTimerId = null
-  }
-
-  animatedIndex.value = -1
 }
 
 function goTo(path) {
   if (route.path === path) return
   router.push(path)
 }
-
-onBeforeUnmount(() => {
-  if (animationTimerId !== null) {
-    clearTimeout(animationTimerId)
-  }
-})
 </script>
 
 <style scoped>
@@ -120,8 +90,7 @@ onBeforeUnmount(() => {
   width: calc((100% - 16px) / 5);
   height: 48px;
   border-radius: 14px;
-  background: var(--accent-soft);
-  transition: transform var(--ease);
+  transition: transform var(--ease), background-color var(--ease), background var(--ease);
   pointer-events: none;
 }
 
@@ -154,7 +123,7 @@ onBeforeUnmount(() => {
   height: 32px;
   align-items: center;
   justify-content: center;
-  transition: transform 0.25s ease;
+  transition: transform var(--ease);
 }
 
 .nav-btn:hover .nav-icon {
@@ -165,11 +134,25 @@ onBeforeUnmount(() => {
   transform: scale(1.05);
 }
 
-.nav-icon-img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
+.nav-icon-shape {
+  width: 28px;
+  height: 28px;
   display: block;
-  user-select: none;
+  background-color: var(--text-muted);
+  -webkit-mask-image: var(--icon-url);
+  mask-image: var(--icon-url);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  opacity: 0.96;
+  transition: background-color var(--ease), opacity var(--ease), transform var(--ease);
+}
+
+.nav-btn:hover .nav-icon-shape,
+.nav-btn-active .nav-icon-shape {
+  opacity: 1;
 }
 </style>

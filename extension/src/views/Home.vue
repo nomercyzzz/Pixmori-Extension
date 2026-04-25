@@ -20,31 +20,56 @@
 
       <article
         class="goal-mini"
+        :class="{ 'goal-mini-empty': !store.hasSelectedGoal }"
         role="button"
         tabindex="0"
         @click="goToGoal"
         @keydown.enter.prevent="goToGoal"
         @keydown.space.prevent="goToGoal"
       >
-        <p class="goal-mini-label">Текущая цель</p>
-        <p class="goal-mini-title">{{ store.selectedGoal.title }}</p>
+        <p class="goal-mini-label">текущая цель</p>
+        <p class="goal-mini-title">{{ currentGoalTitle }}</p>
       </article>
     </div>
+
+    <Transition name="alert-fade">
+      <div v-if="isGoalAlertOpen" class="alert-overlay" @click.self="closeGoalAlert">
+        <div class="alert-card">
+          <h2 class="alert-title">сначала создайте цель</h2>
+          <p class="alert-text">
+            Создайте цель, чтобы начать пользоваться расширением.
+          </p>
+
+          <div class="alert-actions">
+            <button type="button" class="alert-primary-btn" @click="goToGoalFromAlert">
+              создать цель
+            </button>
+            <button type="button" class="alert-secondary-btn" @click="closeGoalAlert">
+              позже
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
   </section>
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import CoinsBalance from '../components/CoinsBalance.vue'
 import HealthBar from '../components/HealthBar.vue'
 import PetDisplay from '../components/PetDisplay.vue'
 import { useAppStore } from '../stores/appStore'
 
+const ANALYZE_REQUEST_TYPE = 'pixmori-analyze-active-page'
+
 const store = useAppStore()
 const router = useRouter()
+const isGoalAlertOpen = ref(false)
 
-const toggleButtonText = computed(() => (store.petActive ? 'Стоп' : 'Старт'))
+const toggleButtonText = computed(() => (store.petActive ? 'стоп' : 'старт'))
+const currentGoalTitle = computed(() => (store.selectedGoal ? store.selectedGoal.title : 'нет цели'))
 
 const buttonModeClass = computed(() =>
   store.petActive ? 'toggle-btn-stop' : 'toggle-btn-start'
@@ -56,7 +81,37 @@ async function togglePet() {
     return
   }
 
+  if (!store.hasSelectedGoal) {
+    isGoalAlertOpen.value = true
+    return
+  }
+
   await store.startPet()
+
+  try {
+    const response = await chrome.runtime.sendMessage({
+      type: ANALYZE_REQUEST_TYPE,
+      trigger: 'manualStart'
+    })
+
+    if (!response?.ok) {
+      console.error('[pixmori][ручной запуск] Не удалось отправить запрос на анализ', response)
+      return
+    }
+
+    if (!response?.scheduled) {
+      console.warn('[pixmori][ручной запуск] Анализ не был запланирован', response)
+      return
+    }
+
+    console.info(`[pixmori][ручной запуск] Анализ запланирован через ${response.delayMs} мс`)
+  } catch (error) {
+    console.error('[pixmori][ручной запуск] Не удалось связаться с фоновым сервисом', serializeError(error))
+  }
+}
+
+function closeGoalAlert() {
+  isGoalAlertOpen.value = false
 }
 
 function goToShop() {
@@ -65,6 +120,23 @@ function goToShop() {
 
 function goToGoal() {
   router.push({ name: 'goal' })
+}
+
+function goToGoalFromAlert() {
+  closeGoalAlert()
+  goToGoal()
+}
+
+function serializeError(error) {
+  if (error instanceof Error) {
+    return {
+      name: error.name,
+      message: error.message,
+      stack: error.stack
+    }
+  }
+
+  return error
 }
 </script>
 
@@ -159,7 +231,12 @@ function goToGoal() {
   font-size: 18px;
   letter-spacing: 0.04em;
   border: 1px solid transparent;
-  transition: transform var(--ease), box-shadow var(--ease), border-color var(--ease), background var(--ease), color var(--ease);
+  transition:
+    transform var(--ease),
+    box-shadow var(--ease),
+    border-color var(--ease),
+    background var(--ease),
+    color var(--ease);
   box-shadow: 0 2px 0 rgba(31, 31, 31, 0.04);
 }
 
@@ -176,7 +253,7 @@ function goToGoal() {
 
 .toggle-btn-start {
   background: var(--accent);
-  color: #FBFAF7;
+  color: #fbfaf7;
   border-color: var(--accent);
 }
 
@@ -206,13 +283,21 @@ function goToGoal() {
   text-align: center;
   overflow: hidden;
   cursor: pointer;
-  transition: transform var(--ease), box-shadow var(--ease), border-color var(--ease), background var(--ease);
+  transition:
+    transform var(--ease),
+    box-shadow var(--ease),
+    border-color var(--ease),
+    background var(--ease);
 }
 
 .goal-mini:hover {
   transform: translateY(-3px);
   border-color: var(--text-muted);
   box-shadow: 0 10px 20px rgba(31, 31, 31, 0.06);
+}
+
+.goal-mini-empty {
+  border-style: dashed;
 }
 
 .goal-mini-label {
@@ -239,11 +324,98 @@ function goToGoal() {
   overflow-wrap: anywhere;
 }
 
+.alert-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(31, 31, 31, 0.48);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+}
+
+.alert-card {
+  width: 100%;
+  max-width: 320px;
+  border: 1px solid var(--border-soft);
+  border-radius: 16px;
+  background: var(--bg-card);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.alert-title {
+  margin: 0;
+  color: var(--text-main);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.alert-text {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.alert-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.alert-primary-btn,
+.alert-secondary-btn {
+  flex: 1;
+  min-height: 42px;
+  border-radius: 12px;
+  border: 1px solid var(--border-soft);
+  font-size: 14px;
+  font-weight: 600;
+  transition: all var(--ease);
+}
+
+.alert-primary-btn {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fbfaf7;
+}
+
+.alert-primary-btn:hover {
+  background: var(--accent-deep);
+  border-color: var(--accent-deep);
+}
+
+.alert-secondary-btn {
+  background: var(--bg-card);
+  color: var(--text-main);
+}
+
+.alert-secondary-btn:hover {
+  border-color: var(--text-muted);
+  transform: translateY(-1px);
+}
+
+.alert-fade-enter-active,
+.alert-fade-leave-active {
+  transition: opacity 0.25s ease;
+}
+
+.alert-fade-enter-from,
+.alert-fade-leave-to {
+  opacity: 0;
+}
+
 @keyframes block-drop {
   from {
     opacity: 0;
     transform: translateY(14px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);

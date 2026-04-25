@@ -1,33 +1,39 @@
 <template>
-  <div class="pet-frame">
-    <div class="pet-bounce" :class="{ 'pet-bounce-rest': phase === 'resting' || phase === 'idling' }">
-      <img
-        class="pet-stage"
-        :src="currentFrame"
-        alt="Питомец"
-        draggable="false"
-      />
-    </div>
+  <div class="pet-frame" :class="frameClass">
+    <img
+      class="pet-stage"
+      :src="currentFrame"
+      alt="Питомец"
+      draggable="false"
+    />
   </div>
 </template>
 
 <script setup>
-import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
-import petIdlePrimary from '../assets/pet/idle111.png'
-import petIdleSecondary from '../assets/pet/idle222.png'
-import petSleepy1 from '../assets/pet/sleepy1.png'
-import petSleepy2 from '../assets/pet/sleepy2.png'
-import petSleepy3 from '../assets/pet/sleepy3.png'
+import petIdle1 from '../assets/pet/default-cat/idle/idle1.png'
+import petIdle2 from '../assets/pet/default-cat/idle/idle2.png'
+import petIdle3 from '../assets/pet/default-cat/idle/idle3.png'
+import petIdle4 from '../assets/pet/default-cat/idle/idle4.png'
+import petSleep1 from '../assets/pet/default-cat/sleep/sleep1.png'
+import petSleep2 from '../assets/pet/default-cat/sleep/sleep2.png'
+import petSleep3 from '../assets/pet/default-cat/sleep/sleep3.png'
+import petSleep4 from '../assets/pet/default-cat/sleep/sleep4.png'
+import petSleepy1 from '../assets/pet/default-cat/sleepy/sleepy1.png'
+import petSleepy2 from '../assets/pet/default-cat/sleepy/sleepy2.png'
+import petSleepy3 from '../assets/pet/default-cat/sleepy/sleepy3.png'
 
-const FALL_FRAMES = [petSleepy1, petSleepy2, petSleepy3]
-const WAKE_FRAMES = [petSleepy3, petSleepy2, petSleepy1, petIdlePrimary]
-const IDLE_FRAMES = [petIdlePrimary, petIdleSecondary, petIdlePrimary]
+const IDLE_FRAMES = [petIdle1, petIdle2, petIdle3, petIdle4, petIdle3, petIdle2]
+const SLEEP_FRAMES = [petSleep1, petSleep2, petSleep3, petSleep4, petSleep3, petSleep2]
+const FALL_ASLEEP_FRAMES = [petIdle4, petSleepy1, petSleepy2, petSleepy3]
+const WAKE_FRAMES = [petSleepy3, petSleepy2, petSleepy1, petIdle4, petIdle3, petIdle2, petIdle1]
 
-const TRANSITION_FRAME_MS = 280
-const IDLE_FRAME_MS = 420
-const REST_MIN_MS = 2600
-const REST_MAX_MS = 4200
+const IDLE_FRAME_MS = 680
+const SLEEP_FRAME_MS = 920
+const TRANSITION_FRAME_MS = 360
+const IDLE_LOOP_DELAY_MS = 760
+const SLEEP_LOOP_DELAY_MS = 620
 
 const props = defineProps({
   active: {
@@ -36,106 +42,166 @@ const props = defineProps({
   }
 })
 
-const phase = ref(props.active ? 'resting' : 'sleeping')
-const currentFrame = ref(props.active ? petIdlePrimary : petSleepy3)
+const state = ref(props.active ? 'idle' : 'sleeping')
+const currentFrame = ref(props.active ? IDLE_FRAMES[0] : SLEEP_FRAMES[0])
 
-let frameTimer = null
-let restTimer = null
+const frameClass = computed(() => ({
+  'pet-frame-idle': state.value === 'idle',
+  'pet-frame-sleeping': state.value === 'sleeping'
+}))
 
-function clearTimers() {
-  if (frameTimer) {
-    clearInterval(frameTimer)
-    frameTimer = null
-  }
-  if (restTimer) {
-    clearTimeout(restTimer)
-    restTimer = null
+let frameTimerId = null
+let animationToken = 0
+
+function clearFrameTimer() {
+  if (frameTimerId !== null) {
+    clearTimeout(frameTimerId)
+    frameTimerId = null
   }
 }
 
-function playSequence(frames, duration, onDone) {
-  if (frameTimer) {
-    clearInterval(frameTimer)
-    frameTimer = null
+function warmupFrame(source) {
+  const image = new Image()
+  image.decoding = 'async'
+  image.src = source
+
+  if (typeof image.decode === 'function') {
+    image.decode().catch(() => {})
   }
-  let i = 0
+}
+
+function appendStartFrame(sequence) {
+  if (!currentFrame.value || currentFrame.value === sequence[0]) {
+    return sequence
+  }
+
+  return [currentFrame.value, ...sequence]
+}
+
+function playSequence(frames, duration, options = {}) {
+  const {
+    loop = false,
+    loopDelay = duration,
+    onDone
+  } = options
+
+  animationToken += 1
+  const token = animationToken
+
+  clearFrameTimer()
+
+  if (frames.length === 0) {
+    onDone?.()
+    return
+  }
+
+  let index = 0
   currentFrame.value = frames[0]
-  frameTimer = setInterval(() => {
-    i += 1
-    if (i >= frames.length) {
-      clearInterval(frameTimer)
-      frameTimer = null
-      onDone?.()
+
+  const step = () => {
+    if (token !== animationToken) {
       return
     }
-    currentFrame.value = frames[i]
-  }, duration)
+
+    if (index >= frames.length - 1) {
+      if (!loop) {
+        frameTimerId = null
+        onDone?.()
+        return
+      }
+
+      index = 0
+      currentFrame.value = frames[index]
+      frameTimerId = window.setTimeout(step, loopDelay)
+      return
+    }
+
+    index += 1
+    currentFrame.value = frames[index]
+    frameTimerId = window.setTimeout(step, duration)
+  }
+
+  frameTimerId = window.setTimeout(step, duration)
 }
 
-function getNextRestPause() {
-  return Math.round(REST_MIN_MS + Math.random() * (REST_MAX_MS - REST_MIN_MS))
+function startIdle() {
+  state.value = 'idle'
+  playSequence(IDLE_FRAMES, IDLE_FRAME_MS, {
+    loop: true,
+    loopDelay: IDLE_LOOP_DELAY_MS
+  })
 }
 
-function scheduleNextIdle() {
-  if (restTimer) clearTimeout(restTimer)
-  restTimer = setTimeout(() => {
-    restTimer = null
-    if (phase.value !== 'resting') return
-    playIdleOnce()
-  }, getNextRestPause())
-}
-
-function playIdleOnce() {
-  phase.value = 'idling'
-  playSequence(IDLE_FRAMES, IDLE_FRAME_MS, () => {
-    if (!props.active) return
-    phase.value = 'resting'
-    currentFrame.value = petIdlePrimary
-    scheduleNextIdle()
+function startSleeping() {
+  state.value = 'sleeping'
+  playSequence(SLEEP_FRAMES, SLEEP_FRAME_MS, {
+    loop: true,
+    loopDelay: SLEEP_LOOP_DELAY_MS
   })
 }
 
 function wakeUp() {
-  phase.value = 'waking'
-  playSequence(WAKE_FRAMES, TRANSITION_FRAME_MS, () => {
-    if (!props.active) return
-    phase.value = 'resting'
-    currentFrame.value = petIdlePrimary
-    scheduleNextIdle()
+  state.value = 'transition'
+  playSequence(appendStartFrame(WAKE_FRAMES), TRANSITION_FRAME_MS, {
+    onDone: () => {
+      if (!props.active) {
+        return
+      }
+
+      startIdle()
+    }
   })
 }
 
 function fallAsleep() {
-  phase.value = 'falling'
-  playSequence(FALL_FRAMES, TRANSITION_FRAME_MS, () => {
-    if (props.active) return
-    phase.value = 'sleeping'
-    currentFrame.value = petSleepy3
+  state.value = 'transition'
+  playSequence(appendStartFrame(FALL_ASLEEP_FRAMES), TRANSITION_FRAME_MS, {
+    onDone: () => {
+      if (props.active) {
+        return
+      }
+
+      startSleeping()
+    }
   })
 }
 
 watch(
   () => props.active,
   (isActive, wasActive) => {
-    if (isActive === wasActive) return
-    clearTimers()
-    if (isActive) wakeUp()
-    else fallAsleep()
+    if (isActive === wasActive) {
+      return
+    }
+
+    if (isActive) {
+      wakeUp()
+      return
+    }
+
+    fallAsleep()
   }
 )
 
 onMounted(() => {
+  ;[
+    ...IDLE_FRAMES,
+    ...SLEEP_FRAMES,
+    ...FALL_ASLEEP_FRAMES,
+    ...WAKE_FRAMES
+  ].forEach((frame) => warmupFrame(frame))
+
   if (props.active) {
-    phase.value = 'resting'
-    currentFrame.value = petIdlePrimary
-    scheduleNextIdle()
-  } else {
-    phase.value = 'sleeping'
-    currentFrame.value = petSleepy3
+    startIdle()
+    return
   }
+
+  startSleeping()
 })
 
-onBeforeUnmount(clearTimers)
+onBeforeUnmount(() => {
+  animationToken += 1
+  clearFrameTimer()
+})
 </script>
 
 <style scoped>
@@ -144,18 +210,21 @@ onBeforeUnmount(clearTimers)
   display: flex;
   align-items: center;
   justify-content: center;
+  transform-origin: 50% 100%;
+  will-change: transform;
   animation: pet-appear 0.4s ease-in-out both;
 }
 
-.pet-bounce {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transform-origin: 50% 100%;
+.pet-frame-idle {
+  animation:
+    pet-appear 0.4s ease-in-out both,
+    pet-idle-float 4.6s ease-in-out infinite;
 }
 
-.pet-bounce-rest {
-  animation: pet-breathe 3s ease-in-out infinite;
+.pet-frame-sleeping {
+  animation:
+    pet-appear 0.4s ease-in-out both,
+    pet-sleep-breathe 6.2s ease-in-out infinite;
 }
 
 .pet-stage {
@@ -165,16 +234,7 @@ onBeforeUnmount(clearTimers)
   image-rendering: pixelated;
   user-select: none;
   display: block;
-}
-
-@keyframes pet-breathe {
-  0%,
-  100% {
-    transform: scaleY(1);
-  }
-  50% {
-    transform: scaleY(1.02);
-  }
+  filter: drop-shadow(0 10px 18px rgba(31, 31, 31, 0.08));
 }
 
 @keyframes pet-appear {
@@ -182,9 +242,40 @@ onBeforeUnmount(clearTimers)
     opacity: 0;
     transform: translateY(6px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes pet-idle-float {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+
+  25% {
+    transform: translateY(-4px) scale(1.012);
+  }
+
+  50% {
+    transform: translateY(-1px) scale(1.004);
+  }
+
+  75% {
+    transform: translateY(-3px) scale(1.01);
+  }
+}
+
+@keyframes pet-sleep-breathe {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+
+  50% {
+    transform: translateY(2px) scale(0.992);
   }
 }
 </style>

@@ -1,24 +1,18 @@
 <template>
   <section class="goal-page">
-    <div class="goal-actions page-block page-block-1">
-      <button
-        class="action-btn"
-        :class="{ 'action-btn-active': activeTab === 'free' }"
-        type="button"
-        @click="selectFreeGoal"
-      >
-        Свободный режим
-      </button>
+    <header class="page-header page-block page-block-1">
+      <h1 class="page-title">Цели</h1>
 
       <button
-        class="action-btn"
-        :class="{ 'action-btn-active': activeTab === 'create' }"
         type="button"
+        class="goal-create-btn"
+        aria-label="Создать цель"
+        title="Создать цель"
         @click="openCreateForm"
       >
-        Создать цель
+        <img :src="iconPlus" alt="" draggable="false" />
       </button>
-    </div>
+    </header>
 
     <section class="goal-list-card page-block page-block-2">
       <div class="filter-row">
@@ -28,7 +22,7 @@
           :class="{ 'filter-btn-active': filter === 'active' }"
           @click="filter = 'active'"
         >
-          <span>Действующие</span>
+          <span>активные</span>
           <span class="filter-count">{{ store.activeGoals.length }}</span>
         </button>
 
@@ -38,86 +32,93 @@
           :class="{ 'filter-btn-active': filter === 'closed' }"
           @click="filter = 'closed'"
         >
-          <span>Закрытые</span>
+          <span>закрытые</span>
           <span class="filter-count">{{ store.closedGoals.length }}</span>
         </button>
       </div>
 
-      <ul v-if="visibleGoals.length > 0" class="goal-list">
-        <li v-for="goal in visibleGoals" :key="goal.id">
-          <div
-            class="goal-card"
-            :class="{
-              'goal-card-active': store.selectedGoalId === goal.id,
-              'goal-card-closed': goal.status === 'closed'
-            }"
+      <Transition name="goal-pane" mode="out-in">
+        <div :key="filter" class="goal-list-shell">
+          <TransitionGroup
+            v-if="visibleGoals.length > 0"
+            appear
+            tag="ul"
+            class="goal-list"
+            name="goal-cards"
           >
-            <button
-              type="button"
-              class="goal-card-main"
-              :disabled="goal.status === 'closed'"
-              @click="selectCustomGoal(goal.id)"
+            <li
+              v-for="(goal, index) in visibleGoals"
+              :key="`${filter}-${goal.id}`"
+              class="goal-list-item"
+              :style="{ '--goal-delay': `${index * 48}ms` }"
             >
-              <span class="goal-title">{{ goal.title }}</span>
-              <span v-if="goal.description" class="goal-desc">{{ goal.description }}</span>
-            </button>
-
-            <div class="goal-chips">
-              <button
-                type="button"
-                class="chip"
-                aria-label="Изменить"
-                title="Изменить"
-                @click="openEditForm(goal)"
-                @mouseenter="setHoveredChip(goal.id, 'edit')"
-                @mouseleave="clearHoveredChip(goal.id, 'edit')"
+              <div
+                class="goal-card"
+                :class="{
+                  'goal-card-active': store.selectedGoalId === goal.id,
+                  'goal-card-closed': goal.status === 'closed'
+                }"
               >
-                <img class="chip-icon" :src="getChipIcon(goal.id, 'edit')" alt="" draggable="false" />
-              </button>
+                <button
+                  type="button"
+                  class="goal-card-main"
+                  :disabled="goal.status === 'closed'"
+                  @click="selectCustomGoal(goal.id)"
+                >
+                  <span class="goal-title">{{ goal.title }}</span>
+                  <span v-if="goal.description" class="goal-desc">{{ goal.description }}</span>
+                </button>
 
-              <button
-                v-if="goal.status === 'closed'"
-                type="button"
-                class="chip"
-                aria-label="Восстановить"
-                title="Восстановить"
-                @click="restoreGoal(goal.id)"
-                @mouseenter="setHoveredChip(goal.id, 'restore')"
-                @mouseleave="clearHoveredChip(goal.id, 'restore')"
-              >
-                <img class="chip-icon" :src="getChipIcon(goal.id, 'restore')" alt="" draggable="false" />
-              </button>
+                <div class="goal-chips">
+                  <button
+                    type="button"
+                    class="chip"
+                    aria-label="Изменить"
+                    title="Изменить"
+                    @click="openEditForm(goal)"
+                  >
+                    <img class="chip-icon" :src="iconPencil" alt="" draggable="false" />
+                  </button>
 
-              <button
-                v-else
-                type="button"
-                class="chip"
-                aria-label="Закрыть"
-                title="Закрыть"
-                @click="closeGoal(goal.id)"
-                @mouseenter="setHoveredChip(goal.id, 'complete')"
-                @mouseleave="clearHoveredChip(goal.id, 'complete')"
-              >
-                <img class="chip-icon" :src="getChipIcon(goal.id, 'complete')" alt="" draggable="false" />
-              </button>
+                  <button
+                    v-if="goal.status === 'closed'"
+                    type="button"
+                    class="chip"
+                    aria-label="Восстановить"
+                    title="Восстановить"
+                    @click="restoreGoal(goal.id)"
+                  >
+                    <img class="chip-icon" :src="iconReload" alt="" draggable="false" />
+                  </button>
 
-              <button
-                type="button"
-                class="chip chip-danger"
-                aria-label="Удалить"
-                title="Удалить"
-                @click="deleteGoal(goal.id)"
-                @mouseenter="setHoveredChip(goal.id, 'delete')"
-                @mouseleave="clearHoveredChip(goal.id, 'delete')"
-              >
-                <img class="chip-icon" :src="getChipIcon(goal.id, 'delete')" alt="" draggable="false" />
-              </button>
-            </div>
-          </div>
-        </li>
-      </ul>
+                  <button
+                    v-else
+                    type="button"
+                    class="chip"
+                    aria-label="Закрыть"
+                    title="Закрыть"
+                    @click="closeGoal(goal.id)"
+                  >
+                    <img class="chip-icon" :src="iconApprove" alt="" draggable="false" />
+                  </button>
 
-      <p v-else class="empty-text">{{ emptyText }}</p>
+                  <button
+                    type="button"
+                    class="chip chip-danger"
+                    aria-label="Удалить"
+                    title="Удалить"
+                    @click="deleteGoal(goal.id)"
+                  >
+                    <img class="chip-icon" :src="iconCancel" alt="" draggable="false" />
+                  </button>
+                </div>
+              </div>
+            </li>
+          </TransitionGroup>
+
+          <p v-else class="empty-text">{{ emptyText }}</p>
+        </div>
+      </Transition>
     </section>
 
     <GoalFormModal
@@ -136,34 +137,21 @@
 <script setup>
 import { computed, reactive, ref } from 'vue'
 import GoalFormModal from '../components/GoalFormModal.vue'
+import iconApprove from '../assets/icons/approve.svg'
+import iconCancel from '../assets/icons/cancel.svg'
+import iconPencil from '../assets/icons/pencil.svg'
+import iconPlus from '../assets/icons/plus.svg'
+import iconReload from '../assets/icons/reload.svg'
 import { useAppStore } from '../stores/appStore'
 import { normalizeTitle } from '../utils/goalUtils.js'
-import iconEditStatic from '../assets/icons/edit-pencil.svg'
-import iconEditAnim from '../assets/icons/edit-pencil.apng.png'
-import iconRestoreStatic from '../assets/icons/восстановить.svg'
-import iconRestoreAnim from '../assets/icons/восстановить.apng.png'
-import iconCompleteStatic from '../assets/icons/галочка.svg'
-import iconCompleteAnim from '../assets/icons/галочка.apng.png'
-import iconDeleteStatic from '../assets/icons/удалить.svg'
-import iconDeleteAnim from '../assets/icons/удалить.apng.png'
 
-const DEFAULT_HELPER_TEXT = 'Опиши цель конкретно, чтобы анализ понимал, какие сайты и действия полезны.'
-const CHIP_ICONS = {
-  edit: { static: iconEditStatic, anim: iconEditAnim },
-  restore: { static: iconRestoreStatic, anim: iconRestoreAnim },
-  complete: { static: iconCompleteStatic, anim: iconCompleteAnim },
-  delete: { static: iconDeleteStatic, anim: iconDeleteAnim }
-}
+const DEFAULT_HELPER_TEXT =
+  'Опиши цель конкретно, чтобы проверка по словам и чёрным спискам была точнее.'
 
 const store = useAppStore()
 const isFormOpen = ref(false)
 const isSubmitAttempted = ref(false)
 const filter = ref('active')
-const hoveredChipKey = ref('')
-
-const activeTab = computed(() => {
-  return isFormOpen.value || !store.isFreeGoalSelected ? 'create' : 'free'
-})
 
 const form = reactive({
   id: null,
@@ -174,37 +162,15 @@ const form = reactive({
   blacklistSearch: ''
 })
 
-const formTitle = computed(() => {
-  return form.id ? 'Редактировать цель' : 'Новая цель'
-})
+const formTitle = computed(() => (form.id ? 'редактировать цель' : 'новая цель'))
 
 const visibleGoals = computed(() => {
   return filter.value === 'closed' ? store.closedGoals : store.activeGoals
 })
 
 const emptyText = computed(() => {
-  return filter.value === 'closed' ? 'закрытых целей пока что нет' : 'целей пока что нет :('
+  return filter.value === 'closed' ? 'Закрытых целей пока нет' : 'Целей пока нет'
 })
-
-function getChipKey(goalId, action) {
-  return `${goalId}:${action}`
-}
-
-function setHoveredChip(goalId, action) {
-  hoveredChipKey.value = getChipKey(goalId, action)
-}
-
-function clearHoveredChip(goalId, action) {
-  if (hoveredChipKey.value === getChipKey(goalId, action)) {
-    hoveredChipKey.value = ''
-  }
-}
-
-function getChipIcon(goalId, action) {
-  const icon = CHIP_ICONS[action]
-  if (!icon) return ''
-  return hoveredChipKey.value === getChipKey(goalId, action) ? icon.anim : icon.static
-}
 
 function getHelperMessage() {
   const title = form.title.trim()
@@ -215,11 +181,11 @@ function getHelperMessage() {
   }
 
   if (form.title && title.length < 3) {
-    return `В названии нужно еще ${3 - title.length} симв.`
+    return `В названии нужно ещё ${3 - title.length} симв.`
   }
 
   if (form.description && description.length < 8) {
-    return `В описании нужно еще ${8 - description.length} симв.`
+    return `В описании нужно ещё ${8 - description.length} симв.`
   }
 
   if (isSubmitAttempted.value && !description) {
@@ -228,7 +194,9 @@ function getHelperMessage() {
 
   if (title.length >= 3) {
     const normalizedTitle = normalizeTitle(title)
-    const hasDuplicate = store.goals.some((goal) => goal.id !== form.id && normalizeTitle(goal.title) === normalizedTitle)
+    const hasDuplicate = store.goals.some(
+      (goal) => goal.id !== form.id && normalizeTitle(goal.title) === normalizedTitle
+    )
 
     if (hasDuplicate) {
       return 'Такая цель уже есть'
@@ -238,16 +206,20 @@ function getHelperMessage() {
   return DEFAULT_HELPER_TEXT
 }
 
-const helperText = computed(() => {
-  return getHelperMessage()
-})
+const helperText = computed(() => getHelperMessage())
 
 const hasValidationError = computed(() => {
   return isFormOpen.value && helperText.value !== DEFAULT_HELPER_TEXT
 })
 
 function handleFormInput() {
-  if (!form.title && !form.description && !form.blacklistSiteDraft && !form.blacklistSearch && form.blacklistSites.length === 0) {
+  if (
+    !form.title &&
+    !form.description &&
+    !form.blacklistSiteDraft &&
+    !form.blacklistSearch &&
+    form.blacklistSites.length === 0
+  ) {
     isSubmitAttempted.value = false
   }
 }
@@ -262,14 +234,9 @@ function resetForm() {
   isSubmitAttempted.value = false
 }
 
-async function selectFreeGoal() {
-  await store.setFreeGoal()
-  closeGoalForm()
-}
-
 function openCreateForm() {
-  isFormOpen.value = true
   resetForm()
+  isFormOpen.value = true
 }
 
 function openEditForm(goal) {
@@ -348,40 +315,37 @@ async function submitGoal() {
   animation-delay: 0.12s;
 }
 
-.goal-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.action-btn {
-  flex: 1;
-  padding: 11px 12px;
-  min-height: 44px;
-  border-radius: 12px;
-  border: 1px solid var(--border-soft);
-  background: var(--bg-card);
-  color: var(--text-main);
-  font-size: 14px;
-  font-weight: 500;
-  transition: all var(--ease);
-}
-
-.action-btn-active {
+.goal-create-btn {
+  width: 42px;
+  height: 42px;
+  border: 1px solid var(--accent);
+  border-radius: 14px;
   background: var(--accent);
-  border-color: var(--accent);
-  color: #FBFAF7;
-  box-shadow: 0 2px 8px rgba(124, 140, 255, 0.25);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  box-shadow: 0 2px 0 rgba(31, 31, 31, 0.04);
+  transition:
+    transform var(--ease),
+    box-shadow var(--ease),
+    border-color var(--ease),
+    background var(--ease);
 }
 
-.action-btn:not(.action-btn-active):hover {
-  border-color: var(--text-muted);
-  transform: translateY(-1px);
-}
-
-.action-btn-active:hover {
+.goal-create-btn:hover {
+  transform: translateY(-3px);
   background: var(--accent-deep);
   border-color: var(--accent-deep);
+  box-shadow: 0 10px 20px rgba(31, 31, 31, 0.08);
   opacity: 1;
+}
+
+.goal-create-btn img {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  display: block;
 }
 
 .goal-list-card {
@@ -454,6 +418,12 @@ async function submitGoal() {
   color: var(--accent-deep);
 }
 
+.goal-list-shell {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
 .goal-list {
   margin: 0;
   padding: 0 4px 0 0;
@@ -487,9 +457,13 @@ async function submitGoal() {
   background: var(--text-muted);
 }
 
+.goal-list-item {
+  width: 100%;
+}
+
 .goal-card {
   width: 100%;
-  border: 1px solid var(--border-soft);
+  border: 0;
   border-radius: 12px;
   background: var(--bg-main);
   color: var(--text-main);
@@ -497,23 +471,23 @@ async function submitGoal() {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  transition: all var(--ease);
+  box-shadow: none;
+  transition: transform var(--ease), box-shadow var(--ease), background var(--ease), color var(--ease);
 }
 
 .goal-card:hover {
-  border-color: var(--text-muted);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(31, 31, 31, 0.05);
 }
 
 .goal-card-active {
-  border-color: var(--accent);
   background: var(--accent);
-  color: #FBFAF7;
-  box-shadow: 0 4px 12px rgba(124, 140, 255, 0.2);
+  color: #fbfaf7;
+  box-shadow: none;
 }
 
 .goal-card-active:hover {
-  border-color: var(--accent);
-  background: var(--accent);
+  box-shadow: 0 6px 14px rgba(124, 140, 255, 0.14);
 }
 
 .goal-card-closed {
@@ -582,13 +556,7 @@ async function submitGoal() {
   gap: 6px;
   flex-wrap: wrap;
   justify-content: flex-end;
-  padding-top: 4px;
-  border-top: 1px solid var(--border-soft);
-  transition: border-top-color var(--ease);
-}
-
-.goal-card-active .goal-chips {
-  border-top-color: rgba(251, 250, 247, 0.25);
+  padding-top: 2px;
 }
 
 .chip {
@@ -597,33 +565,38 @@ async function submitGoal() {
   justify-content: center;
   min-width: 32px;
   min-height: 28px;
-  padding: 4px 10px;
+  padding: 4px 9px;
   border-radius: 999px;
-  border: 1px solid var(--border-soft);
-  background: var(--bg-card);
+  border: 0;
+  background: rgba(251, 250, 247, 0.85);
   color: var(--text-main);
   font-size: 14px;
   line-height: 1;
-  transition: all var(--ease);
+  transition:
+    transform var(--ease),
+    background var(--ease),
+    color var(--ease),
+    border-color var(--ease),
+    box-shadow var(--ease),
+    opacity var(--ease);
 }
 
 .chip:hover {
   transform: translateY(-1px);
-  border-color: var(--text-muted);
+  background: #fbfaf7;
+  box-shadow: 0 8px 16px rgba(31, 31, 31, 0.08);
 }
 
 .chip-danger:hover {
-  border-color: var(--danger);
   background: rgba(209, 73, 91, 0.08);
 }
 
 .goal-card-active .chip {
-  border-color: transparent;
-  background: rgba(251, 250, 247, 0.95);
+  background: rgba(251, 250, 247, 0.92);
 }
 
 .goal-card-active .chip:hover {
-  background: #FBFAF7;
+  background: #fbfaf7;
 }
 
 .chip-icon {
@@ -634,12 +607,44 @@ async function submitGoal() {
   user-select: none;
 }
 
+.goal-pane-enter-active,
+.goal-pane-leave-active {
+  transition: opacity var(--ease), transform var(--ease);
+}
+
+.goal-pane-enter-from,
+.goal-pane-leave-to {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+.goal-cards-enter-active,
+.goal-cards-appear-active {
+  transition: opacity var(--ease), transform var(--ease);
+  transition-delay: var(--goal-delay, 0ms);
+}
+
+.goal-cards-leave-active {
+  transition: opacity var(--ease), transform var(--ease);
+}
+
+.goal-cards-move {
+  transition: transform var(--ease);
+}
+
+.goal-cards-enter-from,
+.goal-cards-appear-from,
+.goal-cards-leave-to {
+  opacity: 0;
+  transform: translateY(14px) scale(0.97);
+}
+
 .empty-text {
   margin: 0;
   color: var(--text-muted);
   font-size: 14px;
   text-align: center;
-  padding: 20px 0;
+  padding: 0;
   transition: color var(--ease);
 }
 

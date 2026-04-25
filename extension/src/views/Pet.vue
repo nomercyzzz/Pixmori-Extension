@@ -1,16 +1,25 @@
 <template>
   <section class="pet-view">
-    <section class="hero-shell page-block page-block-1">
+    <header class="page-header page-block page-block-1">
+      <h1 class="page-title">Питомец</h1>
+    </header>
+
+    <section class="hero-shell page-block page-block-2">
       <div class="hero-stage">
-        <PetDisplay :active="true" />
+        <img
+          class="hero-pet-image"
+          :src="petIdlePrimary"
+          alt="Питомец"
+          draggable="false"
+        />
       </div>
     </section>
 
-    <div class="pet-health-shell page-block page-block-2">
+    <div class="pet-health-shell page-block page-block-3">
       <HealthBar :value="store.petHealth" />
     </div>
 
-    <div class="section-tabs page-block page-block-3" role="tablist" aria-label="разделы питомца">
+    <div class="section-tabs page-block page-block-4" role="tablist" aria-label="Разделы питомца">
       <button
         v-for="section in sections"
         :key="section.id"
@@ -24,7 +33,7 @@
       </button>
     </div>
 
-    <section class="catalog-panel page-block page-block-4">
+    <section class="catalog-panel page-block page-block-5">
       <TransitionGroup
         name="section-catalog-motion"
         tag="div"
@@ -95,18 +104,17 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import HealthBar from '../components/HealthBar.vue'
-import PetDisplay from '../components/PetDisplay.vue'
-import { useAppStore } from '../stores/appStore'
 import foodBurger from '../assets/food/15_burger.png'
 import foodCookies from '../assets/food/28_cookies.png'
-import petIdlePrimary from '../assets/pet/idle111.png'
+import petIdlePrimary from '../assets/pet/default-cat/idle/idle2.png'
+import HealthBar from '../components/HealthBar.vue'
+import { useAppStore } from '../stores/appStore'
 
 const router = useRouter()
 const store = useAppStore()
 
 const petItems = [
-  { id: 'cat', name: 'котик', avatar: petIdlePrimary},
+  { id: 'cat', name: 'котик', avatar: petIdlePrimary },
   { id: 'fox', name: 'лис', comingSoon: true },
   { id: 'rabbit', name: 'кролик', comingSoon: true },
   { id: 'panda', name: 'панда', comingSoon: true },
@@ -287,6 +295,10 @@ onMounted(() => {
   animation-delay: 0.28s;
 }
 
+.page-block-5 {
+  animation-delay: 0.36s;
+}
+
 .hero-shell {
   display: flex;
   justify-content: center;
@@ -302,9 +314,14 @@ onMounted(() => {
   overflow: visible;
 }
 
-.hero-stage :deep(.pet-frame) {
-  position: relative;
-  z-index: 1;
+.hero-pet-image {
+  width: 200px;
+  height: 200px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  user-select: none;
+  display: block;
+  filter: drop-shadow(0 10px 18px rgba(31, 31, 31, 0.08));
 }
 
 .pet-health-shell {
@@ -661,5 +678,4 @@ onMounted(() => {
     transform: translateY(0);
   }
 }
-
 </style>

@@ -12,17 +12,11 @@ export const useAppStore = defineStore('app', {
 
   getters: {
     selectedGoal(state) {
-      return state.goals.find((goal) => goal.id === state.selectedGoalId) ?? {
-        id: 'free-goal',
-        title: 'Свободный режим',
-        description: '',
-        status: 'active',
-        blacklistSites: []
-      }
+      return state.goals.find((goal) => goal.id === state.selectedGoalId) ?? null
     },
 
-    isFreeGoalSelected(state) {
-      return state.selectedGoalId === null
+    hasSelectedGoal(state) {
+      return state.goals.some((goal) => goal.id === state.selectedGoalId)
     },
 
     activeGoals(state) {
@@ -51,11 +45,6 @@ export const useAppStore = defineStore('app', {
     async stopPet() {
       this.petActive = false
       await this.savePet()
-    },
-
-    async setFreeGoal() {
-      this.selectedGoalId = null
-      await this.saveGoals()
     },
 
     async selectGoal(goalId) {
@@ -89,9 +78,11 @@ export const useAppStore = defineStore('app', {
       if (index === -1) return false
 
       this.goals.splice(index, 1)
+
       if (this.selectedGoalId === goalId) {
         this.selectedGoalId = null
       }
+
       await this.saveGoals()
       return true
     },
@@ -112,7 +103,11 @@ export const useAppStore = defineStore('app', {
         return false
       }
 
-      if (this.goals.some((goal) => goal.id !== goalId && normalizeTitle(goal.title) === normalizeTitle(title))) {
+      if (
+        this.goals.some(
+          (goal) => goal.id !== goalId && normalizeTitle(goal.title) === normalizeTitle(title)
+        )
+      ) {
         return false
       }
 
@@ -145,6 +140,7 @@ export const useAppStore = defineStore('app', {
 
       this.goals.unshift(newGoal)
       this.selectedGoalId = newGoal.id
+
       await this.saveGoals()
       return true
     },
@@ -152,9 +148,11 @@ export const useAppStore = defineStore('app', {
     async loadFromStorage() {
       const pet = await loadPetState()
       const goalsState = await loadGoalsState()
+
       this.petActive = pet.active
       this.petHealth = pet.health
       this.goals = goalsState.items
+
       const selected = this.goals.find((goal) => goal.id === goalsState.selectedGoalId)
       this.selectedGoalId = selected && selected.status !== 'closed' ? selected.id : null
     }

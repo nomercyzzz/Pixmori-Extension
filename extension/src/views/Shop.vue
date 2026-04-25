@@ -1,19 +1,20 @@
 <template>
   <section class="store-page">
-    <header class="store-toolbar page-block page-block-1">
-      <label class="store-search" aria-label="Поиск товаров">
-        <input
-          v-model="searchQuery"
-          class="store-search-input"
-          type="text"
-          placeholder="поиск по товарам"
-        />
-      </label>
-
+    <header class="page-header page-block page-block-1">
+      <h1 class="page-title">Магазин</h1>
       <CoinsBalance class="shop-balance" :amount="20" />
     </header>
 
-    <div class="store-filters page-block page-block-2" role="tablist" aria-label="Категории товаров">
+    <label class="store-search page-block page-block-2" aria-label="Поиск товаров">
+      <input
+        v-model="searchQuery"
+        class="store-search-input"
+        type="text"
+        placeholder="Поиск по товарам"
+      />
+    </label>
+
+    <div class="store-filters page-block page-block-3" role="tablist" aria-label="Категории товаров">
       <button
         v-for="category in categories"
         :key="category.id"
@@ -27,7 +28,7 @@
       </button>
     </div>
 
-    <section class="store-catalog page-block page-block-3">
+    <section class="store-catalog page-block page-block-4">
       <TransitionGroup
         name="catalog-motion"
         tag="div"
@@ -78,7 +79,7 @@ import { computed, onMounted, ref } from 'vue'
 import CoinsBalance from '../components/CoinsBalance.vue'
 import foodBurger from '../assets/food/15_burger.png'
 import foodCookies from '../assets/food/28_cookies.png'
-import petIdlePrimary from '../assets/pet/idle111.png'
+import petIdlePrimary from '../assets/pet/default-cat/idle/idle2.png'
 
 const activeCategory = ref('all')
 const searchQuery = ref('')
@@ -271,15 +272,12 @@ onMounted(() => {
   animation-delay: 0.2s;
 }
 
-.store-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+.page-block-4 {
+  animation-delay: 0.28s;
 }
 
 .store-search {
-  flex: 1;
-  min-width: 0;
+  width: 100%;
 }
 
 .store-search-input {
@@ -310,7 +308,7 @@ onMounted(() => {
   display: flex;
   gap: 8px;
   overflow-x: auto;
-  padding: 2px 0;
+  padding: 2px 0 4px;
 }
 
 .store-filters::-webkit-scrollbar {
@@ -521,13 +519,8 @@ onMounted(() => {
 }
 
 @media (max-width: 380px) {
-  .store-toolbar {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
   .shop-balance {
-    align-self: flex-start;
+    margin-left: auto;
   }
 
   .product-grid {

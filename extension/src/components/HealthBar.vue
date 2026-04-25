@@ -1,9 +1,6 @@
 <template>
   <div class="health-bar" :aria-label="ariaLabel">
     <div class="health-meta">
-      <span class="health-heart" aria-hidden="true">
-        <img :src="iconHeart" alt="" draggable="false" />
-      </span>
       <span class="health-label">{{ label }}</span>
       <span class="health-value">{{ normalizedValue }}%</span>
     </div>
@@ -16,7 +13,6 @@
 
 <script setup>
 import { computed } from 'vue'
-import iconHeart from '../assets/icons/лайк-с-заливкой.svg'
 
 const props = defineProps({
   value: {
@@ -57,25 +53,6 @@ const ariaLabel = computed(() => `${props.label} ${normalizedValue.value}%`)
   gap: 8px;
 }
 
-.health-heart {
-  display: inline-flex;
-  width: 22px;
-  height: 22px;
-  flex-shrink: 0;
-  transition: transform 0.4s ease;
-  transform-origin: center;
-}
-
-.health-heart img {
-  width: 100%;
-  height: 100%;
-  display: block;
-}
-
-.health-bar:hover .health-heart {
-  animation: heart-pulse 0.8s ease-in-out;
-}
-
 .health-label {
   font-size: 14px;
   color: var(--text-muted);
@@ -110,25 +87,6 @@ const ariaLabel = computed(() => `${props.label} ${normalizedValue.value}%`)
   transition: width 0.4s ease-in-out;
   animation: health-flow 5.6s ease-in-out infinite alternate;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
-}
-
-@keyframes heart-pulse {
-  0%,
-  100% {
-    transform: scale(1) rotate(0deg);
-  }
-
-  20% {
-    transform: scale(1.25) rotate(-10deg);
-  }
-
-  45% {
-    transform: scale(1.1) rotate(8deg);
-  }
-
-  70% {
-    transform: scale(1.18) rotate(-4deg);
-  }
 }
 
 @keyframes health-flow {

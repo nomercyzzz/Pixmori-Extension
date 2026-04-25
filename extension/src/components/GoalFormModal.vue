@@ -129,16 +129,6 @@ function removeBlacklistSite(site) {
   props.form.blacklistSites = props.form.blacklistSites.filter((item) => item !== site)
   emit('input')
 }
-
-function toggleBlacklistSite(site) {
-  if (props.form.blacklistSites.includes(site)) {
-    removeBlacklistSite(site)
-    return
-  }
-
-  props.form.blacklistSites.push(site)
-  emit('input')
-}
 </script>
 
 <style scoped>
