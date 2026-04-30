@@ -1,0 +1,60 @@
+@import "tailwindcss";
+
+@font-face {
+  font-family: "Digital Proper Pixel";
+  src: url("/fonts/DigitalProperPixel-Regular.otf") format("opentype");
+  font-display: swap;
+}
+
+:root {
+  color-scheme: light;
+  --px-bg-main: #f4f1ea;
+  --px-bg-card: #fbfaf7;
+  --px-bg-card-hover: #f1ece3;
+  --px-border: #d8d2c7;
+  --px-border-strong: #bdb6aa;
+  --px-text: #1f1f1f;
+  --px-muted: #6e6a63;
+  --px-accent: #7c8cff;
+  --px-accent-hover: #5b6ce6;
+  --px-danger: #d1495b;
+  --px-ease: 0.4s ease-in-out;
+  --px-shadow-soft: 0 10px 22px rgba(31, 31, 31, 0.05);
+  --px-shadow-card: 0 18px 32px rgba(31, 31, 31, 0.06);
+  --px-font-pixel: "Digital Proper Pixel", "Courier New", monospace;
+  --px-font-body:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", Roboto, "Helvetica Neue",
+    Arial, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  width: 100%;
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--px-bg-main);
+  color: var(--px-text);
+  font-family: var(--px-font-body);
+  font-size: 13px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+button,
+input {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}

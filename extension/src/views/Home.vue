@@ -62,8 +62,6 @@ import HealthBar from '../components/HealthBar.vue'
 import PetDisplay from '../components/PetDisplay.vue'
 import { useAppStore } from '../stores/appStore'
 
-const ANALYZE_REQUEST_TYPE = 'pixmori-analyze-active-page'
-
 const store = useAppStore()
 const router = useRouter()
 const isGoalAlertOpen = ref(false)
@@ -87,27 +85,6 @@ async function togglePet() {
   }
 
   await store.startPet()
-
-  try {
-    const response = await chrome.runtime.sendMessage({
-      type: ANALYZE_REQUEST_TYPE,
-      trigger: 'manualStart'
-    })
-
-    if (!response?.ok) {
-      console.error('[pixmori][ручной запуск] Не удалось отправить запрос на анализ', response)
-      return
-    }
-
-    if (!response?.scheduled) {
-      console.warn('[pixmori][ручной запуск] Анализ не был запланирован', response)
-      return
-    }
-
-    console.info(`[pixmori][ручной запуск] Анализ запланирован через ${response.delayMs} мс`)
-  } catch (error) {
-    console.error('[pixmori][ручной запуск] Не удалось связаться с фоновым сервисом', serializeError(error))
-  }
 }
 
 function closeGoalAlert() {
@@ -125,18 +102,6 @@ function goToGoal() {
 function goToGoalFromAlert() {
   closeGoalAlert()
   goToGoal()
-}
-
-function serializeError(error) {
-  if (error instanceof Error) {
-    return {
-      name: error.name,
-      message: error.message,
-      stack: error.stack
-    }
-  }
-
-  return error
 }
 </script>
 

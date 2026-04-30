@@ -22,7 +22,13 @@ export default defineConfig({
     emptyOutDir: true,
     rollupOptions: {
       input: {
-        sidepanel: resolve(__dirname, 'sidepanel.html')
+        sidepanel: resolve(__dirname, 'sidepanel.html'),
+        'service-worker': resolve(__dirname, 'src/background/index.js')
+      },
+      output: {
+        entryFileNames: `assets/[name].js`,
+        chunkFileNames: `assets/[name].js`,
+        assetFileNames: `assets/[name].[ext]`
       }
     }
   }
